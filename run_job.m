@@ -28,11 +28,13 @@ fprintf(' time to write input files with total size %d  in parallel: %f(sec)\n',
 
 
 job = createCommunicatingJob(cl,'Type','SPMD');
-createTask(job, @bin_reader, 0,inputs);
+createTask(job, @bin_reader, 1,inputs);
 t0 = tic;
 submit(job);
 wait(job)
 t_end = toc(t0);
+out = fetchOutputs(job);
+disp(out);
 log = getDebugLog(cl,job);
 fprintf(' time to commbine input files with total size %d  in parallel: %f(sec)\n',filesize,t_end);
 
