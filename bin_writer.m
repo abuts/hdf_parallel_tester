@@ -17,9 +17,9 @@ if fh<1
     error('PARALLEL_WRITER:io_error','Can not open file %s',f_name);
 end
 clob = onCleanup(@()fclose(fh));
-contents = id*ones(9,block_size);
+contents = single(id*ones(9,block_size));
 for i=1:n_blocks
-    contents(2,:) = contents(2,:)*i;
-    fwrite(fh,contents);
+    contents(2,:) = single(contents(2,:)*i);
+    fwrite(fh,contents,'float32');
 end
 clear('clob');

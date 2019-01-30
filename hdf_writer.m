@@ -75,7 +75,7 @@ function write_pixels(fid,id,block_size,n_blocks)
 
 group_id = H5G.create(fid,'pixels',100);
 write_attr_group(group_id,struct('NX_class','NXdata'));
-double_id = H5T.copy('H5T_NATIVE_DOUBLE');
+data_id = H5T.copy('H5T_NATIVE_FLOAT');
 
 dims = [9,block_size*n_blocks];
 chunk_dims = [9,block_size];
@@ -91,16 +91,16 @@ H5P.set_chunk(dcpl_id, chunk_dims);
 
 fil_space_id = H5S.create_simple(2,h5_dims,h5_maxdims);
 mem_space_id = H5S.create_simple(2,chunk_dims,chunk_dims);
-dset_id = H5D.create(group_id,'pixels',double_id,fil_space_id,dcpl_id);
+dset_id = H5D.create(group_id,'pixels',data_id,fil_space_id,dcpl_id);
 
 %     /* Write to the dataset */
 %     buffer = 
 %     H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer);
 % 
 
-contents = id*ones(9,block_size);
+contents = single(id*ones(9,block_size));
 for i=1:n_blocks
-    contents(2,:) = contents(2,:)*i;
+    contents(2,:) = single(contents(2,:)*i);
     block_start = [(i-1)*block_size,0];
     H5S.select_hyperslab(fil_space_id,'H5S_SELECT_SET',block_start,[],[],chunk_dims);
     H5D.write(dset_id,'H5ML_DEFAULT',mem_space_id,fil_space_id,'H5P_DEFAULT',contents);    
@@ -113,7 +113,7 @@ H5S.close(fil_space_id);
 H5D.close(dset_id);
 
 %
-H5T.close(double_id);
+H5T.close(data_id);
 H5G.close(group_id);
 end
 %
