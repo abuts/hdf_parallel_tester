@@ -1,5 +1,24 @@
 Serial File writing: 180Mb
 
+------------------------------------------------------------------------------
+NDLT1121 write speed, chund==block;                                            :     chunk = 4096 :   chunk = 16386  :    chunk = 32768 :    chunk = 65536 :  chunk = 128*1024:
+Block size:       16 :bin speed:    1.2(MPix/sec): hdf speed:     0.3(MPix/sec):     0.2(MPix/sec):     0.2(MPix/sec):     0.2(MPix/sec):     0.2(MPix/sec):     0.2(MPix/sec):
+Block size:       32 :bin speed:    2.2(MPix/sec): hdf speed:     0.6(MPix/sec):     0.5(MPix/sec):     0.5(MPix/sec):     0.4(MPix/sec):     0.4(MPix/sec):     0.3(MPix/sec):
+Block size:       64 :bin speed:    3.9(MPix/sec): hdf speed:     1.1(MPix/sec):     1.0(MPix/sec):     0.9(MPix/sec):     0.7(MPix/sec):     0.7(MPix/sec):     0.7(MPix/sec):
+Block size:      128 :bin speed:    4.6(MPix/sec): hdf speed:     2.0(MPix/sec):     1.8(MPix/sec):     1.9(MPix/sec):     1.3(MPix/sec):     1.4(MPix/sec):     1.3(MPix/sec):
+Block size:      256 :bin speed:    7.9(MPix/sec): hdf speed:     3.8(MPix/sec):     3.5(MPix/sec):     3.7(MPix/sec):     2.6(MPix/sec):     2.7(MPix/sec):     2.5(MPix/sec):
+Block size:      512 :bin speed:   13.9(MPix/sec): hdf speed:     7.1(MPix/sec):     6.4(MPix/sec):     6.7(MPix/sec):     4.9(MPix/sec):     5.2(MPix/sec):     4.9(MPix/sec):
+Block size:     1024 :bin speed:   29.5(MPix/sec): hdf speed:    12.2(MPix/sec):    10.8(MPix/sec):    10.8(MPix/sec):     9.3(MPix/sec):     9.7(MPix/sec):     8.8(MPix/sec):
+Block size:     2048 :bin speed:   39.3(MPix/sec): hdf speed:    19.1(MPix/sec):    16.7(MPix/sec):    16.6(MPix/sec):    16.1(MPix/sec):    16.2(MPix/sec):    15.3(MPix/sec):
+Block size:     4096 :bin speed:   43.2(MPix/sec): hdf speed:    26.8(MPix/sec):    22.1(MPix/sec):    19.4(MPix/sec):    22.9(MPix/sec):    22.8(MPix/sec):    21.1(MPix/sec):
+Block size:     8192 :bin speed:   47.3(MPix/sec): hdf speed:    31.5(MPix/sec):    24.7(MPix/sec):    28.7(MPix/sec):    31.7(MPix/sec):    29.2(MPix/sec):    26.5(MPix/sec):
+Block size:    16384 :bin speed:   53.9(MPix/sec): hdf speed:    38.7(MPix/sec):    31.1(MPix/sec):    32.3(MPix/sec):    41.0(MPix/sec):    37.7(MPix/sec):    37.2(MPix/sec):
+Block size:    32768 :bin speed:   54.8(MPix/sec): hdf speed:    50.3(MPix/sec):    34.8(MPix/sec):    41.0(MPix/sec):    46.9(MPix/sec):    45.2(MPix/sec):    47.6(MPix/sec):
+Block size:    65536 :bin speed:   53.5(MPix/sec): hdf speed:    49.6(MPix/sec):    37.9(MPix/sec):    45.1(MPix/sec):    55.3(MPix/sec):    48.8(MPix/sec):    51.7(MPix/sec):
+Block size:   131072 :bin speed:   58.2(MPix/sec): hdf speed:    55.8(MPix/sec):    39.8(MPix/sec):    42.1(MPix/sec):    51.7(MPix/sec):    57.1(MPix/sec):    53.4(MPix/sec):
+Block size:   262144 :bin speed:   44.8(MPix/sec): hdf speed:    45.7(MPix/sec):    34.9(MPix/sec):    39.1(MPix/sec):    44.0(MPix/sec):    45.4(MPix/sec):    45.3(MPix/sec):
+Block size:   524288 :bin speed:   39.5(MPix/sec): hdf speed:    29.6(MPix/sec):    32.1(MPix/sec):    35.9(MPix/sec):    38.7(MPix/sec):    43.5(MPix/sec):    40.6(MPix/sec):
+------------------------------------------------------------------------------
 ndw1676 write speed:
 Block size:       16 :bin speed:    1.1(MPix/sec): hdf speed:     0.1(MPix/sec)
 Block size:       32 :bin speed:    2.0(MPix/sec): hdf speed:     0.3(MPix/sec)
@@ -17,23 +36,7 @@ Block size:    65536 :bin speed:   49.3(MPix/sec): hdf speed:    46.3(MPix/sec)
 Block size:   131072 :bin speed:   51.5(MPix/sec): hdf speed:    44.3(MPix/sec)
 Block size:   262144 :bin speed:   44.0(MPix/sec): hdf speed:    41.0(MPix/sec)
 Block size:   524288 :bin speed:   37.8(MPix/sec): hdf speed:    33.3(MPix/sec)
-NDLT1121 write speed:
-Block size:       16 :bin speed:    1.2(MPix/sec): hdf speed:     0.3(MPix/sec)
-Block size:       32 :bin speed:    2.2(MPix/sec): hdf speed:     0.6(MPix/sec)
-Block size:       64 :bin speed:    3.9(MPix/sec): hdf speed:     1.1(MPix/sec)
-Block size:      128 :bin speed:    4.6(MPix/sec): hdf speed:     2.0(MPix/sec)
-Block size:      256 :bin speed:    7.9(MPix/sec): hdf speed:     3.8(MPix/sec)
-Block size:      512 :bin speed:   13.9(MPix/sec): hdf speed:     7.1(MPix/sec)
-Block size:     1024 :bin speed:   29.5(MPix/sec): hdf speed:    12.2(MPix/sec)
-Block size:     2048 :bin speed:   39.3(MPix/sec): hdf speed:    19.1(MPix/sec)
-Block size:     4096 :bin speed:   43.2(MPix/sec): hdf speed:    26.8(MPix/sec)
-Block size:     8192 :bin speed:   47.3(MPix/sec): hdf speed:    31.5(MPix/sec)
-Block size:    16384 :bin speed:   53.9(MPix/sec): hdf speed:    38.7(MPix/sec)
-Block size:    32768 :bin speed:   54.8(MPix/sec): hdf speed:    50.3(MPix/sec)
-Block size:    65536 :bin speed:   53.5(MPix/sec): hdf speed:    49.6(MPix/sec)
-Block size:   131072 :bin speed:   55.4(MPix/sec): hdf speed:    55.8(MPix/sec)
-Block size:   262144 :bin speed:   44.8(MPix/sec): hdf speed:    45.7(MPix/sec)
-Block size:   524288 :bin speed:   39.5(MPix/sec): hdf speed:    29.6(MPix/sec)
+
 isiscompute: node1
 Block size:       16 :bin speed:    1.0(MPix/sec): hdf speed:     0.1(MPix/sec)
 Block size:       32 :bin speed:    1.8(MPix/sec): hdf speed:     0.2(MPix/sec)
