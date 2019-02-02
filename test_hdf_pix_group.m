@@ -32,16 +32,39 @@ classdef test_hdf_pix_group < TestCase
             clob1 = onCleanup(@()close_fid(obj,fid,file_h,group_id,f_name));
             
             arr_size = 100000;
-            pix_writer = hdf_pix_group(group_id,arr_size);
+            pix_writer = hdf_pix_group(group_id,arr_size,16*1024);
             assertTrue(exist(f_name,'file')==2);
+            pix_alloc_size = pix_writer.max_num_pixels;
+            chunk_size     = pix_writer.block_size;
+            assertEqual(chunk_size,16*1024);
+            assertTrue(pix_alloc_size >= arr_size);
             
             data = ones(9,100);
-            pix_writer.write_pixels(2,data);
+            pos = [2,arr_size/2,arr_size-size(data,2)];
+            pix_writer.write_pixels(pos(1),data);
             
-            pix_writer.write_pixels(arr_size/2,5*data);
+            pix_writer.write_pixels(pos(2),2*data);
             
-            pix_writer.write_pixels(arr_size-size(data,2),10*data);
+            pix_writer.write_pixels(pos(3),3*data);
             clear pix_writer;
+            
+            
+            pix_reader = hdf_pix_group(group_id);
+            assertEqual(chunk_size,pix_reader.block_size);
+            assertEqual(pix_alloc_size,pix_reader.max_num_pixels);
+            
+            
+            pix1 = pix_reader.read_pixels(pos(1),size(data,2));
+            pix2 = pix_reader.read_pixels(pos(2),size(data,2));
+            pix3 = pix_reader.read_pixels(pos(3),size(data,2));
+            
+            assertEqual(single(data),pix1);
+            assertEqual(single(2*data),pix2);
+            assertEqual(single(3*data),pix3);
+            
+            
+            clear pix_reader;
+            
             clear clob1
             
             

@@ -65,6 +65,17 @@ classdef hdf_pix_group < handle
                     error('HDF_PIX_GROUP:runtime_error',...
                         'can not retrieve pixels datasets dataspace');
                 end
+                [~,~,h5_maxdims] = H5S.get_simple_extent_dims(obj.file_space_id_);
+                obj.max_num_pixels_ = h5_maxdims(1);
+                if h5_maxdims(2) ~= 9
+                    error('HDF_PIX_GROUP:runtime_error',...
+                        'wrong size of pixel dataset. dimenison 1 has to be 9 but is: %d',...
+                        h5_maxdims(2));
+                end
+                dcpl_id=H5D.get_create_plist(obj.pix_dataset_);
+                [~,h5_chunk_size] = H5P.get_chunk(dcpl_id);
+                obj.block_size_ = h5_chunk_size(1);
+                %block_size = obj.block_size_;
             else
                 if nargin<1
                     error('HDF_PIX_GROUP:invalid_argument',...
@@ -88,8 +99,10 @@ classdef hdf_pix_group < handle
                 obj.file_space_id_ = H5S.create_simple(2,dims,dims);
                 
                 obj.pix_dataset_= H5D.create(obj.pix_group_id_,group_name,obj.pix_data_id_ ,obj.file_space_id_,dcpl_id);
+                
             end
             H5P.close(dcpl_id);
+            
         end
         function write_pixels(obj,start_pos,pixels)
             block_dims = fliplr(size(pixels));
@@ -122,6 +135,7 @@ classdef hdf_pix_group < handle
             mem_space_id = H5S.create_simple(2,pix_block_size,[]);
             H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],pix_block_size);
             pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
+            H5S.close(mem_space_id);
         end
         
         
@@ -140,7 +154,7 @@ classdef hdf_pix_group < handle
             if obj.file_space_id_ > 0
                 H5S.close(obj.file_space_id_);
             end
-            if obj.pix_data_id_ > 0 
+            if obj.pix_data_id_ > 0
                 H5T.close(obj.pix_data_id_);
             end
             if obj.pix_dataset_ > 0
