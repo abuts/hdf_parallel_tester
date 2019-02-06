@@ -1,4 +1,4 @@
-function size = hdf_reader(block_size,n_blocks,job_num)
+function [time,size] = hdf_communicator(block_size,n_blocks,job_num)
 
 nl = numlabs;
 if ~exist('job_num','var')
@@ -7,24 +7,22 @@ else
     id  = job_num-1;
 end
 %
+t0 = tic;
 if id == 0
     f_name = 'targ_file.hdf';
-    
-    fh = fopen(f_name,'wb');
-    if fh<1
-        error('PARALLEL_WRITER:io_error','Can not open file %s to write',f_name);
-    end
+    [fid,group_id] = open_or_create_nxsqw_head(f_name);
+    clob1 = onCleanup(@()par_clear({group_id,fid}));
+    hdf_w = hdf_pix_group(group_id);
+    clobW = onCleanup(@()par_clear({hdf_w,group_id,fid}));
+    %
     n_parts = nl-1;
-    if n_parts == 0
+    if n_parts == 0  % serial execution. All input files should be read by serial job.
         n_parts = 5;
-        fhr = cell(1,n_parts);
+        fhr = cell(1,2*n_parts);
         for i=1:n_parts
             f_name = sprintf('block_%d.bin',i);
             
-            fhr{i} = fopen(f_name,'rb');
-            if fhr{i}<1
-                error('PARALLEL_WRITER:io_error','Can not open file %s to read',f_name);
-            end
+            [fhr{2*(i-1)+1},fhr{2*(i-1)+2}] = open_or_create_nxsqw_head(f_name);
         end
         clobR = onCleanup(@()par_clear(fhr));
         
@@ -32,30 +30,26 @@ if id == 0
         fhr = [];
     end
     block = zeros(9,block_size*n_parts);
-    clobW = onCleanup(@()fclose(fh));
     
     for i=1:n_blocks
         block = get_block(i,block,n_parts,fhr);
-        fwrite(fh,block );
+        hdf_w.write_pixels(,block);
     end
-    size = ftell(fh)/(8*9);
 else
     
     f_name = sprintf('block_%d.bin',id);
-    
-    fh = fopen(f_name,'rb');
-    if fh<1
-        error('PARALLEL_WRITER:io_error','Can not open file %s to read',f_name);
-    end
-    clob = onCleanup(@()fclose(fh));
+    [fid,gr_id]   =open_or_create_nxsqw_head(f_name);
+    hdf_r = hdf_pix_group(gr_id);    
+    clob = onCleanup(@()par_clear({hdf_r,gr_id,fid}));
     
     for i=1:n_blocks
-        contents = fread(fh,[9,block_size]);
+        contents = hdf_r.read_pixels((i-1)*block_size,block_size);
         labSend(contents,1,i);
     end
     size = block_size*n_blocks;
     clear('clob');
 end
+time = toc(t0);
 
 function block = get_block(n_block,block,n_parts,par)
 
@@ -66,7 +60,7 @@ if isempty(par)
     check_exist = @(i)(labProbe(i+1,n_block));
 else
     check_exist = @(i)(true);
-    get_data = @(i)(fread(par{i},[9,chunk_size]));
+    get_data = @(i)(fread(par{i},[chunk_size]));
 end
 
 n_received = 0;
@@ -82,5 +76,5 @@ end
 
 function par_clear(fh_list)
 for i=1:numel(fh_list)
-    fclose(fh_list{i});
+    delete(fh_list{i});
 end

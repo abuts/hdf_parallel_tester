@@ -11,20 +11,21 @@ a_file_size = filesize/n_files;
 
 job = createCommunicatingJob(cl,'Type','SPMD');
 
-block_size = 1024*4;
+block_size = 1024*32;
 n_blocks = floor(a_file_size/block_size);
 %inputs = cell(1,n_workers);
 
 inputs = {block_size,n_blocks};
 
 
-createTask(job, @bin_writer, 0,inputs);
+createTask(job, @bin_writer, 2,inputs);
 
 t0 = tic;
 submit(job);
 wait(job)
 t_end = toc(t0);
-fprintf(' time to write input files with total size %d  in parallel: %f(sec)\n',filesize,t_end);
+
+fprintf(' total to write input files with total size %d  in parallel: %f(sec)\n',filesize,t_end);
 
 
 job = createCommunicatingJob(cl,'Type','SPMD');

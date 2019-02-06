@@ -12,10 +12,10 @@ end
 
 f_name = sprintf('block_%d.hdf',id);
 
-[fid,group_id,file] = create_nxsqw_head(f_name);
+[fid,group_id,file] = open_or_create_nxsqw_head(f_name);
 
 % write PIXELS
-writer = hdf_pix_group(group_id,n_blocks*block_size,64*1024);
+writer = hdf_pix_group(group_id,n_blocks*block_size,32*1024);
 contents = single(id*ones(9,block_size));
 for i=1:n_blocks
     contents(2,:) = single(contents(2,:)*i);
@@ -23,7 +23,7 @@ for i=1:n_blocks
     writer.write_pixels(start_pos,contents)
 end
 
-
+H5G.close(group_id);
 if ~isempty(file)
     H5G.close(fid);
     H5F.close(file);

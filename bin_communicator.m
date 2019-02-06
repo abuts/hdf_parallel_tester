@@ -1,4 +1,4 @@
-function size = bin_reader(block_size,n_blocks,job_num)
+function [time,size] = bin_communicator(block_size,n_blocks,job_num)
 
 nl = numlabs;
 if ~exist('job_num','var')
@@ -6,6 +6,7 @@ if ~exist('job_num','var')
 else
     id  = job_num-1;
 end
+t0 = tic;
 %
 if id == 0
     f_name = 'targ_file.bin';
@@ -14,7 +15,7 @@ if id == 0
         error('PARALLEL_WRITER:io_error','Can not open file %s to write',f_name);
     end
     n_parts = nl-1;
-    if n_parts == 0
+    if n_parts == 0 % serial execution. All input files should be read by serial job.
         n_parts = 5;
         fhr = cell(1,n_parts);
         for i=1:n_parts
@@ -55,6 +56,7 @@ else
     size = block_size*n_blocks;
     clear('clob');
 end
+time = toc(t0);
 
 function block = get_block(n_block,block,n_parts,par)
 

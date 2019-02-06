@@ -104,6 +104,7 @@ classdef hdf_pix_group < handle
             H5P.close(dcpl_id);
             
         end
+        %
         function write_pixels(obj,start_pos,pixels)
             block_dims = fliplr(size(pixels));
             if block_dims(2) ~=9
@@ -128,6 +129,7 @@ classdef hdf_pix_group < handle
             H5D.write(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT',buff);
             H5S.close(mem_space_id);
         end
+        %
         function pixels= read_pixels(obj,start_pos,n_pix)
             block_start = [start_pos-1,0];
             pix_block_size  = [n_pix,9];
@@ -138,7 +140,7 @@ classdef hdf_pix_group < handle
             H5S.close(mem_space_id);
         end
         
-        
+        %------------------------------------------------------------------
         function sz = get.block_size(obj)
             sz  = obj.block_size_;
         end
@@ -148,7 +150,7 @@ classdef hdf_pix_group < handle
         function range = get.pix_range(obj)
             range  = obj.pix_range_;
         end
-        
+        %------------------------------------------------------------------
         function delete(obj)
             % close all and finish
             if obj.file_space_id_ > 0

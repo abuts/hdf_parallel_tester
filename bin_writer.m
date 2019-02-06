@@ -1,4 +1,5 @@
-function bin_writer(block_size,n_blocks,job_num)
+function [time,size]=bin_writer(block_size,n_blocks,job_num)
+
 
 nl = numlabs;
 if ~exist('job_num','var')
@@ -7,8 +8,11 @@ else
     id  = job_num;
 end
 if id == nl
+    time = 0;
+    size = 0;
     return;
 end
+t0 = tic;
 
 f_name = sprintf('block_%d.bin',id);
 
@@ -22,4 +26,6 @@ for i=1:n_blocks
     contents(2,:) = single(contents(2,:)*i);
     fwrite(fh,contents,'float32');
 end
+size = block_size*n_blocks;
+time = toc(t0);
 clear('clob');

@@ -14,7 +14,7 @@ classdef test_hdf_pix_group < TestCase
             end
             obj = obj@TestCase(class_name);
         end
-        function close_fid(obj,fid,file_h,group_id,f_name)
+        function close_fid(obj,fid,file_h,group_id)
             H5G.close(group_id);
             if ~isempty(file_h)
                 H5G.close(fid);
@@ -22,14 +22,14 @@ classdef test_hdf_pix_group < TestCase
             else
                 H5F.close(fid);
             end
-            delete(f_name);
         end
         
         
         function test_read_write(obj)
             f_name = [tempname,'.nxsqw'];
-            [fid,group_id,file_h] = create_nxsqw_head(f_name);
-            clob1 = onCleanup(@()close_fid(obj,fid,file_h,group_id,f_name));
+            [fid,group_id,file_h,data_version] = open_or_create_nxsqw_head(f_name);
+            clob1 = onCleanup(@()close_fid(obj,fid,file_h,group_id));
+            clob2 = onCleanup(@()delete(f_name));
             
             arr_size = 100000;
             pix_writer = hdf_pix_group(group_id,arr_size,16*1024);
@@ -62,12 +62,29 @@ classdef test_hdf_pix_group < TestCase
             assertEqual(single(2*data),pix2);
             assertEqual(single(3*data),pix3);
             
-            
             clear pix_reader;
-            
             clear clob1
             
+            [fid,group_id,file_h,rec_version] = open_or_create_nxsqw_head(f_name);
+            clob1 = onCleanup(@()close_fid(obj,fid,file_h,group_id));
             
+            assertEqual(data_version,rec_version);
+            
+            pix_reader = hdf_pix_group(group_id);
+            pix3 = pix_reader.read_pixels(pos(3),size(data,2));
+            pix2 = pix_reader.read_pixels(pos(2),size(data,2));
+            pix1 = pix_reader.read_pixels(pos(1),size(data,2));
+            
+            
+            
+            assertEqual(single(data),pix1);
+            assertEqual(single(2*data),pix2);
+            assertEqual(single(3*data),pix3);
+
+            clear pix_reader;
+            
+            clear clob1;
+            clear clob2;
         end
     end
 end
