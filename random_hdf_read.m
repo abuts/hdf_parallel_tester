@@ -1,4 +1,4 @@
-function [time,real_sz]=random_hdf_read(filesize,block_size,n_blocks,job_num)
+function [time,real_sz]=random_hdf_read(filesize,block_size,n_blocks,job_num,n_call)
 t0 = tic;
 nl = numlabs;
 if ~exist('job_num','var')
@@ -9,6 +9,9 @@ end
 if id == nl
     return;
 end
+if ~exist('n_call','var')
+    n_call = 1;
+end
 
 f_name = sprintf('block_%d.hdf',id);
 
@@ -16,7 +19,9 @@ f_name = sprintf('block_%d.hdf',id);
 
 % read PIXELS
 reader = hdf_pix_group(group_id);
-fprintf(' chunk size: %dKPix\n',reader.block_size/1024);
+if n_call == 1
+    fprintf(' chunk size: %dKPix\n',reader.block_size/1024);
+end
 pos = floor((filesize-block_size)*rand(1,n_blocks))+1;
 %pos = sort(pos); % this should not and seems indeed does not make any
 %difference to the read speed.

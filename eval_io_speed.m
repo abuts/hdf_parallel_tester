@@ -56,7 +56,7 @@ for n_block = 1:numel(block_size)
     t2= 0;
     tot_size = 0;
     for i=1:N_att
-        [tr,read_sz]=random_hdf_read(file_size,block_size(n_block),floor(nblocks/8),2);
+        [tr,read_sz]=random_hdf_read(file_size,block_size(n_block),floor(nblocks/8),2,i);
         t2 = t2+tr;
         tot_size = tot_size+read_sz;
     end
