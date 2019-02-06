@@ -23,6 +23,7 @@ for i=1:n_blocks
     start_pos = (i-1)*block_size+1;
     writer.write_pixels(start_pos,contents)
 end
+size = block_size*n_blocks;
 
 H5G.close(group_id);
 if ~isempty(file)
