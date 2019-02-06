@@ -1,4 +1,4 @@
-function hdf_writer(block_size,n_blocks,job_num)
+function [time,size]=hdf_writer(block_size,n_blocks,job_num)
 
 nl = numlabs;
 if ~exist('job_num','var')
@@ -9,6 +9,7 @@ end
 if id == nl
     return;
 end
+t0 = tic;
 
 f_name = sprintf('block_%d.hdf',id);
 
@@ -30,4 +31,4 @@ if ~isempty(file)
 else
     H5F.close(fid);
 end
-end
+time = toc(t0);

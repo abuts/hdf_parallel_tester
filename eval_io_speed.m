@@ -1,15 +1,18 @@
-function eval_io_speed
+function eval_io_speed(disable_binary)
 
 block_size = [32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288];
 N_att = 1;
 minN_blocks = 100;
-disable_binary = false;
+if ~exist('disable_binary','var')
+    disable_binary = false;
+end
 for n_block = 1:numel(block_size)
     
     nblocks = floor(block_size(end)*minN_blocks/block_size(n_block));
+    file_size = nblocks*block_size(n_block);
+    
     if disable_binary
-        fprintf('Block size: %8d :Speed(MPix/sec) ',block_size(n_block));
-        
+        fprintf('Block size: %8d :Speed(MPix/sec): ',block_size(n_block));
     else
         t1 =0 ;
         tot_size = 0;
@@ -20,10 +23,10 @@ for n_block = 1:numel(block_size)
         end
         
         
-        fprintf('Block size: %8d :Speed(MPix/sec) bin Write: %4.1f:',...
+        fprintf('Block size: %8d :Speed(MPix/sec): bin Write: %4.1f:',...
             block_size(n_block),(tot_size/(1024*1024))/t1);
         
-        file_size = nblocks*block_size(n_block);
+        
         t1=0;
         tot_size = 0;
         for i=1:N_att
@@ -32,11 +35,12 @@ for n_block = 1:numel(block_size)
             tot_size = tot_size+read_sz;
         end
         fprintf(' Read: %4.1f:',(tot_size/t1/(1024*1024)));
-        t0 = tic;
-        for i = 1:N_att
-            hdf_writer(block_size(n_block),nblocks ,2);
-        end
     end
+    t0 = tic;
+    for i = 1:N_att
+        hdf_writer(block_size(n_block),nblocks ,2);
+    end
+    
     t2=toc(t0);
     fprintf(' HDF Write: %4.1f:',(block_size(n_block)*N_att*nblocks/(1024*1024))/t2 );
     %
@@ -50,3 +54,5 @@ for n_block = 1:numel(block_size)
     
     fprintf(' Read:  %4.1f\n',(tot_size/t2/(1024*1024)) );
 end
+delete('block_2.bin');
+delete('block_2.hdf');

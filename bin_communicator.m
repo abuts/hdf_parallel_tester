@@ -38,7 +38,7 @@ if id == 0
         block = get_block(i,block,n_parts,fhr);
         fwrite(fh,block );
     end
-    size = ftell(fh)/(8*9);
+    size = ftell(fh)/(4*9);
 else
     
     f_name = sprintf('block_%d.bin',id);
@@ -67,7 +67,7 @@ if isempty(par)
     check_exist = @(i)(labProbe(i+1,n_block));
 else
     check_exist = @(i)(true);
-    get_data = @(i)(fread(par{i},[9,chunk_size]));
+    get_data = @(i)(fread(par{i},[9,chunk_size],'real*4'));
 end
 
 n_received = 0;
