@@ -5,9 +5,12 @@ cl = gcp('nocreate');
 if isempty(cl)
     cl  = parcluster();
 end
+if ~exist('filesize','var')
+    filesize = 1024*32*10;
+end
 n_workers  = cl.NumWorkers;
-n_files = n_workers;
-a_file_size = filesize/n_files;
+n_files = n_workers-1;
+a_file_size = filesize/(n_files-1);
 
 job = createCommunicatingJob(cl,'Type','SPMD');
 
@@ -20,16 +23,18 @@ inputs = {block_size,n_blocks};
 
 createTask(job, @bin_writer, 2,inputs);
 
-t0 = tic;
 submit(job);
 wait(job)
-t_end = toc(t0);
+out = fetchOutputs(job);
+out = cell2mat(out);
+run_time = max(out(:,1));
+writ_size = sum(out(:,2));
 
-fprintf(' total to write input files with total size %d  in parallel: %f(sec)\n',filesize,t_end);
+fprintf(' Parallel speed to write %d input files with total size %d  : %f(sec)\n',n_files,writ_size,run_time );
 
 
 job = createCommunicatingJob(cl,'Type','SPMD');
-createTask(job, @bin_reader, 1,inputs);
+createTask(job, @bin_communicator, 2,inputs);
 t0 = tic;
 submit(job);
 wait(job)

@@ -46,7 +46,7 @@ for i=1:n_blocks
 
         continue;
     end
-    cont = fread(fh,[9,block_size],'real*4');
+    cont = fread(fh,[9,block_size],'*float32');
     read_sz = read_sz+size(cont,2);
 end
 
