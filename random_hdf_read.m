@@ -10,7 +10,7 @@ if id == nl
     return;
 end
 if ~exist('n_call','var')
-    n_call = 1;
+    n_call = 0;
 end
 
 f_name = sprintf('block_%d.hdf',id);
@@ -23,7 +23,7 @@ if n_call == 1
     fprintf(' chunk size: %dKPix\n',reader.block_size/1024);
 end
 pos = floor((filesize-block_size)*rand(1,n_blocks))+1;
-%pos = sort(pos); % this should not and seems indeed does not make any
+pos = sort(pos); % this should not and seems indeed does not make any
 %difference to the read speed.
 real_sz = 0;
 for i=1:n_blocks

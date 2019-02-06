@@ -12,7 +12,7 @@ classdef hdf_pix_group < handle
         pix_range
     end
     properties(Access=private)
-        block_size_   =  32768;
+        block_size_   =  1024; % decent io speed starts from 16*1024
         max_num_pixels_   = -1;
         num_pixels_       = 0;
         %
@@ -124,6 +124,11 @@ classdef hdf_pix_group < handle
             mem_space_id = H5S.create_simple(2,block_dims,block_dims);
             
             block_start = [start_pos-1,0];
+            if start_pos+block_dims(1)-1 > obj.max_num_pixels_
+                error('HDF_PIX_GROUP:invalid_argument',...
+                    'The final position of pixels to write (%d) exceeds the allocated pixels storage (%d)',...
+                    start_pos+block_dims(1),obj.max_num_pixels_)
+            end
             
             H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],block_dims);
             H5D.write(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT',buff);

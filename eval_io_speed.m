@@ -4,6 +4,8 @@ function eval_io_speed(disable_binary)
 block_size = [64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288];
 N_att = 10;
 minN_blocks = 10;
+HDF_chunk_size = 1024;
+fprintf('HDF chunk size: %dKPix\n',HDF_chunk_size/1024);
 if ~exist('disable_binary','var')
     disable_binary = false;
 end
@@ -41,22 +43,24 @@ for n_block = 1:numel(block_size)
         end
         fprintf(' Read: %4.1f:',(tot_size/t1/(1024*1024)));
     end
-    t0 = tic;
+    
+    t2=0;
+    tot_size = 0;    
     for i = 1:N_att
         if exist('block_2.hdf','file')==2
             delete('block_2.hdf');
         end
         
-        hdf_writer(block_size(n_block),nblocks ,2);
-    end
-    
-    t2=toc(t0);
-    fprintf(' HDF Write: %4.1f:',(block_size(n_block)*N_att*nblocks/(1024*1024))/t2 );
+        [tr,write_sz]=hdf_writer(block_size(n_block),nblocks,2,HDF_chunk_size);
+        t2= t2+tr;
+        tot_size = tot_size+write_sz;
+    end    
+    fprintf(' HDF Write: %4.1f:',(tot_size/(1024*1024))/t2 );
     %
     t2= 0;
     tot_size = 0;
     for i=1:N_att
-        [tr,read_sz]=random_hdf_read(file_size,block_size(n_block),floor(nblocks/8),2,i);
+        [tr,read_sz]=random_hdf_read(file_size,block_size(n_block),floor(nblocks/8),2);
         t2 = t2+tr;
         tot_size = tot_size+read_sz;
     end
