@@ -16,6 +16,7 @@ f_name = sprintf('block_%d.hdf',id);
 
 % read PIXELS
 reader = hdf_pix_group(group_id);
+fprintf(' chunk size: %dKPix\n',reader.block_size/1024);
 pos = floor((filesize-block_size)*rand(1,n_blocks))+1;
 %pos = sort(pos); % this should not and seems indeed does not make any
 %difference to the read speed.

@@ -5,7 +5,7 @@ classdef hdf_pix_group < handle
     properties(Dependent)
         % the number of pixels allowed to be stored in the dataset
         max_num_pixels;
-        % Optimal size of the chunk providing access to
+        % The size of the chunk providing access to
         % the pixel dataset
         block_size
         % the min/max values of the pixels data, stored in the dataset
