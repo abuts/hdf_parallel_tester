@@ -20,7 +20,7 @@ f_name = sprintf('block_%d.hdf',id);
 % read PIXELS
 reader = hdf_pix_group(group_id);
 if n_call == 1
-    fprintf(' chunk size: %dKPix\n',reader.block_size/1024);
+    fprintf(' chunk size: %dKPix\n',reader.chunk_size/1024);
 end
 
 pos = floor((filesize-block_size)*rand(1,n_blocks))+1;
@@ -31,10 +31,15 @@ block_size = ends-starts;
 [pos,block_size] = compact_overlapping(starts,block_size);
 %difference to the read speed.
 real_sz = 0;
-while ~isempty(pos)
-    [cont,pos,block_size] = reader.read_pixels(pos,block_size);
-    real_sz  = real_sz+size(cont,2);
+for i=1:numel(pos)
+     cont = reader.read_pixels(pos(i),block_size(i));
+     real_sz  = real_sz+size(cont,2);
+    
 end
+% while ~isempty(pos)
+%     [cont,pos,block_size] = reader.read_pixels(pos,block_size);
+%     real_sz  = real_sz+size(cont,2);
+% end
 
 delete(reader);
 H5G.close(group_id);

@@ -35,7 +35,7 @@ classdef test_hdf_pix_group < TestCase
             pix_writer = hdf_pix_group(group_id,arr_size,16*1024);
             assertTrue(exist(f_name,'file')==2);
             pix_alloc_size = pix_writer.max_num_pixels;
-            chunk_size     = pix_writer.block_size;
+            chunk_size     = pix_writer.chunk_size;
             assertEqual(chunk_size,16*1024);
             assertTrue(pix_alloc_size >= arr_size);
             
@@ -50,7 +50,7 @@ classdef test_hdf_pix_group < TestCase
             
             
             pix_reader = hdf_pix_group(group_id);
-            assertEqual(chunk_size,pix_reader.block_size);
+            assertEqual(chunk_size,pix_reader.chunk_size);
             assertEqual(pix_alloc_size,pix_reader.max_num_pixels);
             
             
@@ -128,10 +128,12 @@ classdef test_hdf_pix_group < TestCase
             assertEqual(npix,1000);            
 
             
+            % single read operation as total size is smaller than the block
+            % size
             pos = [10,1000,2000];            
-            npix =[1024,2048,1000];
+            npix =[128,256,256];
             [pix,pos,npix] = pix_acc.read_pixels(pos,npix);            
-            assertEqual(pix(1,1:2048),single(2000:(1999+2048)));
+            assertEqual(pix(1,385:(384+256)),single(2000:(1999+256)));
             assertEqual(numel(pos),1);
             assertEqual(numel(npix),1);            
             

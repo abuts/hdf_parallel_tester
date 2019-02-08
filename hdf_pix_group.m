@@ -7,15 +7,20 @@ classdef hdf_pix_group < handle
         max_num_pixels;
         % The size of the chunk providing access to
         % the pixel dataset
-        block_size
+        chunk_size
         % the min/max values of the pixels data, stored in the dataset
         pix_range
+        %
+        %
+        cache_nslots;
+        cache_size; % in pixels
     end
     properties(Access=private)
-        block_size_   =  1024*32;   % decent io speed starts from 16*1024
+        chunk_size_   =  1024*32;   % decent io speed starts from 16*1024
         cache_nslots_   =  521 ; % in block sizes
-        max_num_pixels_   = -1;
-        num_pixels_       = 0;
+        cache_size_     =  -1 ; % in bytes
+        max_num_pixels_  = -1;
+        num_pixels_      = 0;
         %
         pix_group_id_     = -1;
         file_space_id_    = -1;
@@ -27,29 +32,29 @@ classdef hdf_pix_group < handle
     end
     
     methods
-        function obj = hdf_pix_group(fid,n_pixels,block_size)
+        function obj = hdf_pix_group(fid,n_pixels,chunk_size)
             % Open existing or create new pixels group in existing hdf file.
             %
             % If the group does not exist, additional parameters describing
             % the pixel array size have to be specified. If it does exist,
             % all input parameters except fid will be ignored
             %Usage:
-            % pix_wr = hdf_pixel_group(fid,n_pixels,[block_size]);
+            % pix_wr = hdf_pixel_group(fid,n_pixels,[chunk_size]);
             %          % creates pixel group to store specified number of pixels
-            % block_size -- if present, specifies the chunk size of the
-            %               chunked hdf dataset to create.
+            % chunk_size -- if present, specifies the chunk size of the
+            %               chunked hdf dataset to create. If not, default
+            %               class value is used
             % pix_wr = hdf_pixel_group(fid); open existing pixels group
             %                                for IO operations. Throws if
             %                                the group does not exist.
             %
-            if exist('block_size','var')
-                obj.block_size_ = block_size;
+            if exist('chunk_size','var')
+                obj.chunk_size_ = chunk_size;
             else
-                block_size = obj.block_size_;
+                chunk_size = obj.chunk_size_;
             end
             
             group_name = 'pixels';
-            cache_n_bytes = obj.cache_nslots_*block_size*9*4;
             
             obj.pix_data_id_ = H5T.copy('H5T_NATIVE_FLOAT');
             if H5L.exists(fid,group_name,'H5P_DEFAULT')
@@ -77,38 +82,48 @@ classdef hdf_pix_group < handle
                 end
                 dcpl_id=H5D.get_create_plist(obj.pix_dataset_);
                 [~,h5_chunk_size] = H5P.get_chunk(dcpl_id);
-                obj.block_size_ = h5_chunk_size(1);
-                %block_size = obj.block_size_;
+                obj.chunk_size_ = h5_chunk_size(1);
+                pix_dapl_id = H5D.get_access_plist(obj.pix_dataset_);
+                [obj.cache_nslots_,obj.cache_size_]=H5P.get_chunk_cache(pix_dapl_id);
+                %chunk_size = obj.chunk_size_;
             else
                 if nargin<1
                     error('HDF_PIX_GROUP:invalid_argument',...
                         'the pixels group does not exist but the size of the pixel dataset is not specified')
                 end
                 
-                n_blocks = n_pixels/block_size ;
-                if rem(n_pixels,block_size)>0
+                n_blocks = n_pixels/chunk_size ;
+                if rem(n_pixels,chunk_size)>0
                     n_blocks = floor(n_blocks) +1;
                 end
-                obj.max_num_pixels_ = block_size*n_blocks;
+                obj.max_num_pixels_ = chunk_size*n_blocks;
                 dims = [obj.max_num_pixels_,9];
-                chunk_dims = [block_size,9];
+                chunk_dims = [chunk_size,9];
                 %
                 obj.pix_group_id_ = H5G.create(fid,group_name,10*numel(group_name));
                 write_attr_group(obj.pix_group_id_,struct('NX_class','NXdata'));
+                % size of the pixel cache
+                pn = primes(2050);
+                obj.cache_nslots_ = pn(end);
+                cache_n_bytes = obj.cache_nslots_*chunk_size*9*4*64;
+                %cache_n_bytes     = 0; %chunk_size*9*4;
+                obj.cache_size_   = cache_n_bytes;
+                
                 
                 dcpl_id = H5P.create('H5P_DATASET_CREATE');
                 H5P.set_chunk(dcpl_id, chunk_dims);
+                pix_dapl_id = H5P.create('H5P_DATASET_ACCESS');
+                H5P.set_chunk_cache(pix_dapl_id,obj.cache_nslots_,cache_n_bytes,1);
                 
                 obj.file_space_id_ = H5S.create_simple(2,dims,dims);
                 
-                obj.pix_dataset_= H5D.create(obj.pix_group_id_,group_name,obj.pix_data_id_ ,obj.file_space_id_,dcpl_id);
+                obj.pix_dataset_= H5D.create(obj.pix_group_id_,group_name,...
+                    obj.pix_data_id_ ,obj.file_space_id_,...
+                    'H5P_DEFAULT',dcpl_id,pix_dapl_id);
                 
             end
-            
-            H5P.close(dcpl_id);
-            pix_daspl = H5D.get_access_plist(obj.pix_dataset_);
-            H5P.set_chunk_cache(pix_daspl,obj.cache_nslots_,cache_n_bytes,1);
-            H5P.close(pix_daspl);
+            %H5P.close(dcpl_id);
+            %H5P.close(pix_dapl_id );
             
         end
         %
@@ -149,10 +164,10 @@ classdef hdf_pix_group < handle
             %
             if numel(start_pos) == 1
                 block_start = [start_pos-1,0];
-                pix_block_size  = [n_pix,9];
+                pix_chunk_size  = [n_pix,9];
                 
-                mem_space_id = H5S.create_simple(2,pix_block_size,[]);
-                H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],pix_block_size);
+                mem_space_id = H5S.create_simple(2,pix_chunk_size,[]);
+                H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],pix_chunk_size);
                 pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
                 H5S.close(mem_space_id);
                 start_pos = [];
@@ -181,19 +196,19 @@ classdef hdf_pix_group < handle
                 n_blocks = numel(start_pos);
                 block_start = [block_start,zeros(n_blocks,1)];
                 pix_sizes = ones(n_blocks,1)*9;
-                pix_block_size = [npix,pix_sizes];
+                pix_chunk_size = [npix,pix_sizes];
                 
-                H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start(1,:),[],[],pix_block_size(1,:));
-                cur_size = pix_block_size(1,1);
+                H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start(1,:),[],[],pix_chunk_size(1,:));
+                cur_size = pix_chunk_size(1,1);
                 n_blocks_selected = 1;
-                if cur_size < obj.block_size_
+                if cur_size < obj.cache_size
                     for i=2:n_blocks
-                        next_size = cur_size+pix_block_size(i,1);
-                        if cur_size>obj.block_size_
+                        next_size = cur_size+pix_chunk_size(i,1);
+                        if cur_size>obj.chunk_size_
                             break;
                         end
                         cur_size = next_size;
-                        H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_OR',block_start(i,:),[],[],pix_block_size(i,:));
+                        H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_OR',block_start(i,:),[],[],pix_chunk_size(i,:));
                         n_blocks_selected = n_blocks_selected +1;
                     end
                 end
@@ -211,8 +226,8 @@ classdef hdf_pix_group < handle
         end
         
         %------------------------------------------------------------------
-        function sz = get.block_size(obj)
-            sz  = obj.block_size_;
+        function sz = get.chunk_size(obj)
+            sz  = obj.chunk_size_;
         end
         function np = get.max_num_pixels(obj)
             np  = obj.max_num_pixels_;
@@ -220,6 +235,13 @@ classdef hdf_pix_group < handle
         function range = get.pix_range(obj)
             range  = obj.pix_range_;
         end
+        function sz = get.cache_size(obj)
+            sz = obj.cache_size_/(36);
+        end
+        function sz = get.cache_nslots(obj)
+            sz = obj.cache_nslots_;
+        end
+        
         %------------------------------------------------------------------
         function delete(obj)
             % close all and finish
