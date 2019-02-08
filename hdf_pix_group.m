@@ -27,8 +27,27 @@ classdef hdf_pix_group < handle
         pix_data_id_      = -1;
         pix_dataset_      = -1;
         
+        
         %
         pix_range_ = [inf,-inf;inf,-inf;inf,-inf;inf,-inf];
+        write_mem_space_buf_ = [];
+        read_mem_space_buf_ = [];
+    end
+    methods(Access = private)
+        function mem_space_id = get_cached_mem_space(obj,bufer_name,block_dims)
+            % function extracts memory space object from a data buffer
+            buffer = obj.(bufer_name);
+            if isempty(buffer)
+                mem_space_id = H5S.create_simple(2,block_dims,block_dims);
+            else
+                mem_space_id  = buffer;                
+                [~,buf_dims] = H5S.get_simple_extent_dims(mem_space_id);
+                if ~all(buf_dims == block_dims)
+                    H5S.set_extent_simple(mem_space_id,2,block_dims,block_dims);
+                end
+            end
+            obj.(bufer_name) = mem_space_id;
+        end
     end
     
     methods
@@ -143,7 +162,7 @@ classdef hdf_pix_group < handle
             else
                 buff = single(pixels);
             end
-            mem_space_id = H5S.create_simple(2,block_dims,block_dims);
+            mem_space_id = obj.get_cached_mem_space('write_mem_space_buf_',block_dims);
             
             block_start = [start_pos-1,0];
             if start_pos+block_dims(1)-1 > obj.max_num_pixels_
@@ -154,7 +173,6 @@ classdef hdf_pix_group < handle
             
             H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],block_dims);
             H5D.write(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT',buff);
-            H5S.close(mem_space_id);
         end
         %
         function [pixels,start_pos,n_pix]= read_pixels(obj,start_pos,n_pix)
@@ -218,9 +236,10 @@ classdef hdf_pix_group < handle
                 end
                 
                 mem_block_size = [cur_size,9];
-                mem_space_id = H5S.create_simple(2,mem_block_size,[]);
+                mem_space_id = obj.get_cached_mem_space('read_mem_space_buf_',mem_block_size);
+                
                 pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
-                H5S.close(mem_space_id);
+                
                 
             end
         end
@@ -245,6 +264,13 @@ classdef hdf_pix_group < handle
         %------------------------------------------------------------------
         function delete(obj)
             % close all and finish
+            if ~isempty(obj.read_mem_space_buf_)
+                H5S.close(obj.read_mem_space_buf_);
+            end
+            
+            if ~isempty(obj.write_mem_space_buf_)
+                H5S.close(obj.write_mem_space_buf_);
+            end
             if obj.file_space_id_ > 0
                 H5S.close(obj.file_space_id_);
             end
