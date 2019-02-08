@@ -4,7 +4,7 @@ function eval_io_speed(disable_binary)
 block_size = [64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288];
 N_att = 1; % number of times to read/write similar files to collect proper IO statistics
 minN_blocks = 100; % minimal number of blocks to write (filesiz = minN_blocks*max(block_size))
-HDF_chunk_size = 1024;
+HDF_chunk_size = 1024*32;
 fprintf('HDF chunk size: %dKPix\n',HDF_chunk_size/1024);
 if ~exist('disable_binary','var')
     disable_binary = false;

@@ -26,27 +26,20 @@ classdef hdf_pix_group < handle
         file_space_id_    = -1;
         pix_data_id_      = -1;
         pix_dataset_      = -1;
-        
+        io_mem_space_     = -1;
+        io_chunk_size_    = 0;
         
         %
         pix_range_ = [inf,-inf;inf,-inf;inf,-inf;inf,-inf];
-        write_mem_space_buf_ = [];
-        read_mem_space_buf_ = [];
     end
     methods(Access = private)
-        function mem_space_id = get_cached_mem_space(obj,bufer_name,block_dims)
+        function mem_space_id = get_cached_mem_space(obj,block_dims)
             % function extracts memory space object from a data buffer
-            buffer = obj.(bufer_name);
-            if isempty(buffer)
-                mem_space_id = H5S.create_simple(2,block_dims,block_dims);
-            else
-                mem_space_id  = buffer;                
-                [~,buf_dims] = H5S.get_simple_extent_dims(mem_space_id);
-                if ~all(buf_dims == block_dims)
-                    H5S.set_extent_simple(mem_space_id,2,block_dims,block_dims);
-                end
+            if obj.io_chunk_size_ ~= block_dims(1)
+                H5S.set_extent_simple(obj.io_mem_space_,2,block_dims,block_dims);
+                obj.io_chunk_size_ = block_dims(1);
             end
-            obj.(bufer_name) = mem_space_id;
+            mem_space_id = obj.io_mem_space_;
         end
     end
     
@@ -124,7 +117,7 @@ classdef hdf_pix_group < handle
                 % size of the pixel cache
                 pn = primes(2050);
                 obj.cache_nslots_ = pn(end);
-                cache_n_bytes = obj.cache_nslots_*chunk_size*9*4*64;
+                cache_n_bytes = obj.cache_nslots_*chunk_size*9*4*2;
                 %cache_n_bytes     = 0; %chunk_size*9*4;
                 obj.cache_size_   = cache_n_bytes;
                 
@@ -141,19 +134,16 @@ classdef hdf_pix_group < handle
                     'H5P_DEFAULT',dcpl_id,pix_dapl_id);
                 
             end
+            block_dims = [obj.chunk_size_,9];
+            obj.io_mem_space_ = H5S.create_simple(2,block_dims,block_dims);
+            obj.io_chunk_size_ = obj.chunk_size_;
             %H5P.close(dcpl_id);
             %H5P.close(pix_dapl_id );
             
         end
         %
         function write_pixels(obj,start_pos,pixels)
-            block_dims = fliplr(size(pixels));
-            if block_dims(2) ~=9
-                error('HDF_PIX_GROUP:invalid_argument',...
-                    'Pixel array size should be [9,npix], but actually it is [%d,%d]',...
-                    block_dims(2),block_dims(1));
-                
-            end
+            block_dims = [size(pixels,2),9];
             if block_dims(1)<=0
                 return;
             end
@@ -162,7 +152,11 @@ classdef hdf_pix_group < handle
             else
                 buff = single(pixels);
             end
-            mem_space_id = obj.get_cached_mem_space('write_mem_space_buf_',block_dims);
+            
+            if obj.io_chunk_size_ ~= block_dims(1)
+                H5S.set_extent_simple(obj.io_mem_space_,2,block_dims,block_dims);
+                obj.io_chunk_size_ = block_dims(1);
+            end
             
             block_start = [start_pos-1,0];
             if start_pos+block_dims(1)-1 > obj.max_num_pixels_
@@ -172,7 +166,7 @@ classdef hdf_pix_group < handle
             end
             
             H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],block_dims);
-            H5D.write(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT',buff);
+            H5D.write(obj.pix_dataset_,'H5ML_DEFAULT',obj.io_mem_space_,obj.file_space_id_,'H5P_DEFAULT',buff);
         end
         %
         function [pixels,start_pos,n_pix]= read_pixels(obj,start_pos,n_pix)
@@ -184,10 +178,15 @@ classdef hdf_pix_group < handle
                 block_start = [start_pos-1,0];
                 pix_chunk_size  = [n_pix,9];
                 
-                mem_space_id = H5S.create_simple(2,pix_chunk_size,[]);
+                if obj.io_chunk_size_ ~= n_pix
+                    H5S.set_extent_simple(obj.io_mem_space_,2,pix_chunk_size,pix_chunk_size);
+                    obj.io_chunk_size_ = n_pix;
+                end
+                
+                
                 H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],pix_chunk_size);
-                pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
-                H5S.close(mem_space_id);
+                pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',obj.io_mem_space_,obj.file_space_id_,'H5P_DEFAULT');
+                
                 start_pos = [];
             else
                 if numel(n_pix) ~=numel(start_pos)
@@ -236,9 +235,12 @@ classdef hdf_pix_group < handle
                 end
                 
                 mem_block_size = [cur_size,9];
-                mem_space_id = obj.get_cached_mem_space('read_mem_space_buf_',mem_block_size);
+                if obj.io_chunk_size_ ~= cur_size
+                    H5S.set_extent_simple(obj.io_mem_space_,2,mem_block_size,mem_block_size);
+                    obj.io_chunk_size_ = cur_size;
+                end
                 
-                pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
+                pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',obj.io_mem_space_,obj.file_space_id_,'H5P_DEFAULT');
                 
                 
             end
@@ -264,13 +266,10 @@ classdef hdf_pix_group < handle
         %------------------------------------------------------------------
         function delete(obj)
             % close all and finish
-            if ~isempty(obj.read_mem_space_buf_)
-                H5S.close(obj.read_mem_space_buf_);
+            if ~isempty(obj.io_mem_space_)
+                H5S.close(obj.io_mem_space_);
             end
             
-            if ~isempty(obj.write_mem_space_buf_)
-                H5S.close(obj.write_mem_space_buf_);
-            end
             if obj.file_space_id_ > 0
                 H5S.close(obj.file_space_id_);
             end
