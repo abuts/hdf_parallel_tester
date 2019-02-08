@@ -26,17 +26,13 @@ clob = onCleanup(@()fclose(fh));
 
 
 pos = floor((filesize-block_size)*rand(1,n_blocks));
-pos = sort(pos)*(9*4);
-%stat = fseek(fh,pos(1),'bof');
-%if stat ~=0
-%    error('can not move to initial position')
-%end
-%pos = pos -(pos(1)+block_size*4*9);
-% invalid = pos+block_size*(4*9)> fsize;
-% if any(invalid)
-%     disp(find(invalid));
-% end
-%pos(1) = 0;
+pos = sort(pos);
+ends       = pos+block_size;
+block_size = ends-pos;
+[pos,block_size] = compact_overlapping(pos,block_size);
+
+pos = pos*(9*4);
+n_blocks = numel(pos);
 read_sz = 0;
 for i=1:n_blocks
     stat=fseek(fh,pos(i),'bof');
@@ -46,7 +42,7 @@ for i=1:n_blocks
 
         continue;
     end
-    cont = fread(fh,[9,block_size],'*float32');
+    cont = fread(fh,[9,block_size(i)],'*float32');
     read_sz = read_sz+size(cont,2);
 end
 

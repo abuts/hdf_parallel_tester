@@ -12,7 +12,8 @@ classdef hdf_pix_group < handle
         pix_range
     end
     properties(Access=private)
-        block_size_   =  1024; % decent io speed starts from 16*1024
+        block_size_   =  1024*32;   % decent io speed starts from 16*1024
+        cache_nslots_   =  521 ; % in block sizes
         max_num_pixels_   = -1;
         num_pixels_       = 0;
         %
@@ -48,6 +49,8 @@ classdef hdf_pix_group < handle
             end
             
             group_name = 'pixels';
+            cache_n_bytes = obj.cache_nslots_*block_size*9*4;
+            
             obj.pix_data_id_ = H5T.copy('H5T_NATIVE_FLOAT');
             if H5L.exists(fid,group_name,'H5P_DEFAULT')
                 obj.pix_group_id_ = H5G.open(fid,group_name);
@@ -101,7 +104,11 @@ classdef hdf_pix_group < handle
                 obj.pix_dataset_= H5D.create(obj.pix_group_id_,group_name,obj.pix_data_id_ ,obj.file_space_id_,dcpl_id);
                 
             end
+            
             H5P.close(dcpl_id);
+            pix_daspl = H5D.get_access_plist(obj.pix_dataset_);
+            H5P.set_chunk_cache(pix_daspl,obj.cache_nslots_,cache_n_bytes,1);
+            H5P.close(pix_daspl);
             
         end
         %
@@ -135,14 +142,72 @@ classdef hdf_pix_group < handle
             H5S.close(mem_space_id);
         end
         %
-        function pixels= read_pixels(obj,start_pos,n_pix)
-            block_start = [start_pos-1,0];
-            pix_block_size  = [n_pix,9];
+        function [pixels,start_pos,n_pix]= read_pixels(obj,start_pos,n_pix)
+            % read pixel information specified by pixels starting position
+            % and the sizes of the pixels blocks
             
-            mem_space_id = H5S.create_simple(2,pix_block_size,[]);
-            H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],pix_block_size);
-            pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
-            H5S.close(mem_space_id);
+            %
+            if numel(start_pos) == 1
+                block_start = [start_pos-1,0];
+                pix_block_size  = [n_pix,9];
+                
+                mem_space_id = H5S.create_simple(2,pix_block_size,[]);
+                H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start,[],[],pix_block_size);
+                pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
+                H5S.close(mem_space_id);
+                start_pos = [];
+            else
+                if numel(n_pix) ~=numel(start_pos)
+                    if numel(n_pix)==1
+                        npix = ones(numel(start_pos),1)*n_pix;
+                    else
+                        error('HDF_PIX_GROUP:invalid_argument',...
+                            'number of pix blocks (%d) has to be equal to the number of pix positions (%d) or be equal to 1',...
+                            numel(n_pix),numel(start_post));
+                    end
+                else
+                    if size(n_pix,2) ~=1
+                        npix = n_pix';
+                    else
+                        npix = n_pix;
+                    end
+                end
+                if size(start_pos,2) ~=1
+                    block_start = start_pos'-1;
+                else
+                    block_start = start_pos-1;
+                end
+                
+                n_blocks = numel(start_pos);
+                block_start = [block_start,zeros(n_blocks,1)];
+                pix_sizes = ones(n_blocks,1)*9;
+                pix_block_size = [npix,pix_sizes];
+                
+                H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_SET',block_start(1,:),[],[],pix_block_size(1,:));
+                cur_size = pix_block_size(1,1);
+                n_blocks_selected = 1;
+                if cur_size < obj.block_size_
+                    for i=2:n_blocks
+                        next_size = cur_size+pix_block_size(i,1);
+                        if cur_size>obj.block_size_
+                            break;
+                        end
+                        cur_size = next_size;
+                        H5S.select_hyperslab(obj.file_space_id_,'H5S_SELECT_OR',block_start(i,:),[],[],pix_block_size(i,:));
+                        n_blocks_selected = n_blocks_selected +1;
+                    end
+                end
+                start_pos = start_pos(n_blocks_selected+1:end);
+                if numel(n_pix) > 1
+                    n_pix = n_pix(n_blocks_selected+1:end);
+                end
+                
+                mem_block_size = [cur_size,9];
+                mem_space_id = H5S.create_simple(2,mem_block_size,[]);
+                pixels=H5D.read(obj.pix_dataset_,'H5ML_DEFAULT',mem_space_id,obj.file_space_id_,'H5P_DEFAULT');
+                H5S.close(mem_space_id);
+                
+            end
         end
         
         %------------------------------------------------------------------

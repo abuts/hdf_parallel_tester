@@ -80,11 +80,66 @@ classdef test_hdf_pix_group < TestCase
             assertEqual(single(data),pix1);
             assertEqual(single(2*data),pix2);
             assertEqual(single(3*data),pix3);
-
+            
             clear pix_reader;
             
             clear clob1;
             clear clob2;
+        end
+        function test_multiblock_read(obj)
+            f_name = [tempname,'.nxsqw'];
+            
+            [fid,group_id,file_h] = open_or_create_nxsqw_head(f_name);
+            clob1 = onCleanup(@()close_fid(obj,fid,file_h,group_id));
+            clob2 = onCleanup(@()delete(f_name));
+            
+            arr_size = 100000;
+            pix_acc = hdf_pix_group(group_id,arr_size,1024);
+            assertTrue(exist(f_name,'file')==2);
+            
+            data = repmat(1:arr_size,9,1);
+            pix_acc.write_pixels(1,data);
+            
+            pos = [10,100,400];
+            npix = 10;
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);
+            assertEqual(pix(2,1:10),single(10:19));
+            assertEqual(pix(9,11:20),single(100:109));
+            assertEqual(pix(1,21:30),single(400:409));
+            assertTrue(isempty(pos));
+            assertEqual(npix,10);
+            
+            pos = [10,2000,5000];            
+            npix =[1024,2048,1000];
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);            
+            
+            assertEqual(pix(3,1:1024),single(10:1033));
+            assertEqual(numel(pos),2);
+            assertEqual(numel(npix),2);            
+            
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);                        
+            assertEqual(pix(1,1:2048),single(2000:(1999+2048)));
+            assertEqual(numel(pos),1);
+            assertEqual(numel(npix),1);            
+            
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);                        
+            assertEqual(pix(1,1:1000),single(5000:(4999+1000)));
+            assertTrue(isempty(pos));
+            assertEqual(npix,1000);            
+
+            
+            pos = [10,1000,2000];            
+            npix =[1024,2048,1000];
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);            
+            assertEqual(pix(1,1:2048),single(2000:(1999+2048)));
+            assertEqual(numel(pos),1);
+            assertEqual(numel(npix),1);            
+            
+            
+            clear pix_acc;
+            clear clob1;
+            clear clob2;
+            
         end
     end
 end

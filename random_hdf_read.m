@@ -22,12 +22,17 @@ reader = hdf_pix_group(group_id);
 if n_call == 1
     fprintf(' chunk size: %dKPix\n',reader.block_size/1024);
 end
+
 pos = floor((filesize-block_size)*rand(1,n_blocks))+1;
-pos = sort(pos); % this should not and seems indeed does not make any
+
+starts = sort(pos); % this should not and seems indeed does not make any
+ends       = starts+block_size;
+block_size = ends-starts;
+[pos,block_size] = compact_overlapping(starts,block_size);
 %difference to the read speed.
 real_sz = 0;
-for i=1:n_blocks
-    cont = reader.read_pixels(pos(i),block_size);
+while ~isempty(pos)
+    [cont,pos,block_size] = reader.read_pixels(pos,block_size);
     real_sz  = real_sz+size(cont,2);
 end
 

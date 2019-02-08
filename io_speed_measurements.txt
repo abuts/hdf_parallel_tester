@@ -122,20 +122,21 @@ Block size:   262144 :Speed(MPix/sec): bin Write: 53.9: Read:  9.6: HDF Write: 3
 Block size:   524288 :Speed(MPix/sec): bin Write: 46.2: Read:  9.5: HDF Write: 30.4: Read:  19.6:  HDF Write: 36.0: Read:  22.0:  HDF Write: 36.3: Read:  22.5
 
 isiscompute: node1,                                               :  chunk = 1024               :  chunk = 16*1024            : chunk = 32*1024              : chunk = 64*1024
-Block size:       64 :Speed(MPix/sec): bin Write:  2.6: Read:  1.7
-Block size:      128 :Speed(MPix/sec): bin Write:  4.8: Read:  3.1
-Block size:      256 :Speed(MPix/sec): bin Write:  6.8: Read:  4.3
-Block size:      512 :Speed(MPix/sec): bin Write:  9.5: Read:  5.3
-Block size:     1024 :Speed(MPix/sec): bin Write: 10.8: Read:  9.0
-Block size:     2048 :Speed(MPix/sec): bin Write: 14.0: Read: 13.6
-Block size:     4096 :Speed(MPix/sec): bin Write:  9.5: Read: 13.1
-Block size:     8192 :Speed(MPix/sec): bin Write: 12.2: Read: 11.0
-Block size:    16384 :Speed(MPix/sec): bin Write: 21.8: Read: 21.5
-Block size:    32768 :Speed(MPix/sec): bin Write: 16.7: Read: 12.2
-Block size:    65536 :Speed(MPix/sec): bin Write: 17.6: Read: 12.3
-Block size:   131072 :Speed(MPix/sec): bin Write: 24.4: Read:  8.4
-Block size:   262144 :Speed(MPix/sec): bin Write: 15.7: Read:  6.0
-Block size:   524288 :Speed(MPix/sec): bin Write: 18.5: Read:  7.0
+Block size:       64 :Speed(MPix/sec): bin Write:  2.6: Read:  1.7: HDF Write:  0.2: Read:   0.2
+Block size:      128 :Speed(MPix/sec): bin Write:  4.8: Read:  3.1: HDF Write:  0.4: Read:   0.4
+Block size:      256 :Speed(MPix/sec): bin Write:  6.8: Read:  4.3: HDF Write:  0.7: Read:   0.7
+Block size:      512 :Speed(MPix/sec): bin Write:  9.5: Read:  5.3: HDF Write:  1.5: Read:   1.5
+Block size:     1024 :Speed(MPix/sec): bin Write: 10.8: Read:  9.0: HDF Write:  2.4: Read:   2.3
+Block size:     2048 :Speed(MPix/sec): bin Write: 14.0: Read: 13.6: HDF Write:  4.5: Read:   3.6
+Block size:     4096 :Speed(MPix/sec): bin Write:  9.5: Read: 13.1: HDF Write:  5.9: Read:   6.9
+Block size:     8192 :Speed(MPix/sec): bin Write: 12.2: Read: 11.0: HDF Write:  5.4: Read:   7.1
+Block size:    16384 :Speed(MPix/sec): bin Write: 21.8: Read: 21.5: HDF Write:  8.3: Read:   8.1
+Block size:    32768 :Speed(MPix/sec): bin Write: 16.7: Read: 12.2: HDF Write:  8.7: Read:   9.9
+Block size:    65536 :Speed(MPix/sec): bin Write: 17.6: Read: 12.3: HDF Write:  9.4: Read:  12.9
+Block size:   131072 :Speed(MPix/sec): bin Write: 24.4: Read:  8.4: HDF Write: 11.9: Read:  13.5
+Block size:   262144 :Speed(MPix/sec): bin Write: 15.7: Read:  6.0: HDF Write:  9.0: Read:   8.1
+Block size:   524288 :Speed(MPix/sec): bin Write: 18.5: Read:  7.0: HDF Write: 10.4: Read:   9.6
+
 
 DaaaS host-192-168-243-105                                        :  chunk = 1024               :  chunk = 16*1024            : chunk = 32*1024              : chunk = 64*1024
 Block size:       64 :Speed(MPix/sec): bin Write:  7.7: Read:  4.6: HDF Write:  0.7: Read:   0.7: HDF Write:  0.8: Read:   0.7:  HDF Write:  0.7: Read:   0.7:  HDF Write:  0.7: Read:   0.7
