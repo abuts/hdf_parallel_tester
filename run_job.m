@@ -6,11 +6,13 @@ if isempty(cl)
     cl  = parcluster();
 end
 if ~exist('filesize','var')
-    filesize = 1024*32*10;
+    filesize = 1024*32*100;
 end
-n_workers  = cl.NumWorkers;
+n_workers = 6;
+cl.NumWorkers = n_workers;
+%n_workers  = cl.NumWorkers;
 n_files = n_workers-1;
-a_file_size = filesize/(n_files-1);
+a_file_size = filesize/n_files;
 
 job = createCommunicatingJob(cl,'Type','SPMD');
 
