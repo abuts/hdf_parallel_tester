@@ -31,15 +31,15 @@ block_size = ends-starts;
 [pos,block_size] = compact_overlapping(starts,block_size);
 %difference to the read speed.
 real_sz = 0;
-% for i=1:numel(pos)
-%      cont = reader.read_pixels(pos(i),block_size(i));
-%      real_sz  = real_sz+size(cont,2);
-% 
-% end
-while ~isempty(pos)
-    [cont,pos,block_size] = reader.read_pixels(pos,block_size);
-    real_sz  = real_sz+size(cont,2);
+for i=1:numel(pos)
+     cont = reader.read_pixels(pos(i),block_size(i));
+     real_sz  = real_sz+size(cont,2);
+
 end
+% while ~isempty(pos)
+%     [cont,pos,block_size] = reader.read_pixels(pos,block_size);
+%     real_sz  = real_sz+size(cont,2);
+% end
 
 delete(reader);
 H5G.close(group_id);

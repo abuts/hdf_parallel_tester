@@ -71,6 +71,38 @@ Block size:    65536 :bin speed:   31.1(MPix/sec): hdf speed:    34.7(MPix/sec)
 Block size:   131072 :bin speed:   36.7(MPix/sec): hdf speed:    35.9(MPix/sec)
 Block size:   262144 :bin speed:   36.5(MPix/sec): hdf speed:    34.1(MPix/sec)
 Block size:   524288 :bin speed:   32.0(MPix/sec): hdf speed:    32.8(MPix/sec)
+IO latest results: 1.8Gb file:
+HDF chunk size: 32KPix
+Block size:       64 :Speed(MPix/sec):  HDF Write:  1.6: Read:   0.7 bin Write:  7.1: Read:  3.0:
+Block size:      128 :Speed(MPix/sec):  HDF Write:  2.1: Read:   0.8 bin Write:  7.5: Read: 10.0:
+Block size:      256 :Speed(MPix/sec):  HDF Write:  5.8: Read:   0.8 bin Write: 16.6: Read: 17.8:
+Block size:      512 :Speed(MPix/sec):  HDF Write: 10.6: Read:   0.9 bin Write: 14.8: Read: 18.2:
+Block size:     1024 :Speed(MPix/sec):  HDF Write: 15.3: Read:   0.8 bin Write: 22.1: Read: 32.2:
+Block size:     2048 :Speed(MPix/sec):  HDF Write: 24.7: Read:   0.8 bin Write: 28.4: Read: 53.4:
+Block size:     4096 :Speed(MPix/sec):  HDF Write: 17.7: Read:   0.7 bin Write: 24.1: Read: 67.5:
+Block size:     8192 :Speed(MPix/sec):  HDF Write: 26.1: Read:   1.0 bin Write: 40.5: Read: 132.3:
+Block size:    16384 :Speed(MPix/sec):  HDF Write: 54.8: Read:   1.2 bin Write: 41.5: Read: 138.0:
+Block size:    32768 :Speed(MPix/sec):  HDF Write: 59.0: Read:  58.6 bin Write: 36.7: Read: 112.7:
+Block size:    65536 :Speed(MPix/sec):  HDF Write: 52.6: Read:  67.3 bin Write: 39.4: Read: 146.4:
+Block size:   131072 :Speed(MPix/sec):  HDF Write: 76.0: Read:  66.7 bin Write: 41.3: Read: 94.3:
+Block size:   262144 :Speed(MPix/sec):  HDF Write: 54.4: Read:  56.0 bin Write: 36.4: Read: 89.4:
+Block size:   524288 :Speed(MPix/sec):  HDF Write: 55.5: Read:  56.5 bin Write: 21.6: Read: 88.2:
+>> eval_io_speed
+HDF chunk size: 32KPix
+Block size:       64 :Speed(MPix/sec):  HDF Write:  1.6: Read:   1.2 bin Write:  4.3: Read:  3.2:
+Block size:      128 :Speed(MPix/sec):  HDF Write:  3.0: Read:   2.5 bin Write: 11.7: Read:  8.0:
+Block size:      256 :Speed(MPix/sec):  HDF Write:  5.0: Read:   4.2 bin Write: 15.6: Read: 14.7:
+Block size:      512 :Speed(MPix/sec):  HDF Write:  9.2: Read:   9.3 bin Write: 21.3: Read: 27.3:
+Block size:     1024 :Speed(MPix/sec):  HDF Write: 19.4: Read:  14.7 bin Write: 30.5: Read: 41.9:
+Block size:     2048 :Speed(MPix/sec):  HDF Write: 28.0: Read:  24.3 bin Write: 39.2: Read: 66.6:
+Block size:     4096 :Speed(MPix/sec):  HDF Write: 28.5: Read:  40.3 bin Write: 38.3: Read: 109.5:
+Block size:     8192 :Speed(MPix/sec):  HDF Write: 45.4: Read:  51.6 bin Write: 30.2: Read: 91.5:
+Block size:    16384 :Speed(MPix/sec):  HDF Write: 34.9: Read:  52.1 bin Write: 10.6: Read: 115.2:
+Block size:    32768 :Speed(MPix/sec):  HDF Write: 57.5: Read:  67.9 bin Write: 36.3: Read: 114.0:
+Block size:    65536 :Speed(MPix/sec):  HDF Write: 67.9: Read:  71.9 bin Write: 45.3: Read: 115.1:
+Block size:   131072 :Speed(MPix/sec):  HDF Write: 63.9: Read:  70.7 bin Write: 39.9: Read: 95.9:
+Block size:   262144 :Speed(MPix/sec):  HDF Write: 60.1: Read:  58.8 bin Write: 38.0: Read: 90.3:
+Block size:   524288 :Speed(MPix/sec):  HDF Write: 52.6: Read:  59.2 bin Write: 36.0: Read: 85.2:
 %--------------------------------------------------------------------------------------------------------------------------
 NDLT1121 io speed, 1880Mb file:  (low statistics)
                                                                   :  chunk = 1024                :  chunk = 16*1024             : chunk = 32*1024             : chunk = 64*1024
