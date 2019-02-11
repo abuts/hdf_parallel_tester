@@ -72,7 +72,7 @@ Block size:   131072 :bin speed:   36.7(MPix/sec): hdf speed:    35.9(MPix/sec)
 Block size:   262144 :bin speed:   36.5(MPix/sec): hdf speed:    34.1(MPix/sec)
 Block size:   524288 :bin speed:   32.0(MPix/sec): hdf speed:    32.8(MPix/sec)
 IO latest results: 1.8Gb file:
-HDF chunk size: 32KPix
+HDF chunk size: 32KPix   -- preselect cunk and read
 Block size:       64 :Speed(MPix/sec):  HDF Write:  1.6: Read:   0.7 bin Write:  7.1: Read:  3.0:
 Block size:      128 :Speed(MPix/sec):  HDF Write:  2.1: Read:   0.8 bin Write:  7.5: Read: 10.0:
 Block size:      256 :Speed(MPix/sec):  HDF Write:  5.8: Read:   0.8 bin Write: 16.6: Read: 17.8:
@@ -88,7 +88,7 @@ Block size:   131072 :Speed(MPix/sec):  HDF Write: 76.0: Read:  66.7 bin Write: 
 Block size:   262144 :Speed(MPix/sec):  HDF Write: 54.4: Read:  56.0 bin Write: 36.4: Read: 89.4:
 Block size:   524288 :Speed(MPix/sec):  HDF Write: 55.5: Read:  56.5 bin Write: 21.6: Read: 88.2:
 >> eval_io_speed
-HDF chunk size: 32KPix
+HDF chunk size: 32KPix directly read pixels
 Block size:       64 :Speed(MPix/sec):  HDF Write:  1.6: Read:   1.2 bin Write:  4.3: Read:  3.2:
 Block size:      128 :Speed(MPix/sec):  HDF Write:  3.0: Read:   2.5 bin Write: 11.7: Read:  8.0:
 Block size:      256 :Speed(MPix/sec):  HDF Write:  5.0: Read:   4.2 bin Write: 15.6: Read: 14.7:
@@ -231,3 +231,114 @@ Block size:    65536 :Speed(MPix/sec): bin Write: 27.8: Read: 28.1: HDF Write: 1
 Block size:   131072 :Speed(MPix/sec): bin Write: 25.8: Read: 17.6: HDF Write: 18.2: Read:  25.1: HDF Write: 19.0: Read:  26.9:  HDF Write: 21.5: Read:  32.1:  HDF Write: 20.2: Read:  18.3
 Block size:   262144 :Speed(MPix/sec): bin Write: 21.0: Read: 25.0: HDF Write: 15.3: Read:  22.1: HDF Write: 19.9: Read:  23.3:  HDF Write: 20.8: Read:  26.4:  HDF Write: 23.1: Read:  27.2
 Block size:   524288 :Speed(MPix/sec): bin Write: 18.7: Read: 12.3: HDF Write: 12.9: Read:  18.8: HDF Write: 19.2: Read:  22.6:  HDF Write: 19.7: Read:  19.9:  HDF Write: 21.2: Read:  26.2
+
+Chunk 1024*32 binary IO. file: 1024*32*1000 pix
+time to run workers and job sizes
+    [0.2951]    [6553600]
+    [0.3002]    [6553600]
+    [0.3530]    [6553600]
+    [0.2599]    [6553600]
+    [0.2497]    [6553600]
+    [     0]    [      0]
+ io speed for the worker 1: 21.18(MPix/sec)
+ io speed for the worker 2: 20.82(MPix/sec)
+ io speed for the worker 3: 17.70(MPix/sec)
+ io speed for the worker 4: 24.05(MPix/sec)
+ io speed for the worker 5: 25.03(MPix/sec)
+ Parallel speed to write 5 input files with total size 32768000  : 22.030329(sec), speed 1.418499(MPix/sec)
+time to run workers and job sizes
+    [1.8754]    [32768000]
+    [1.8730]    [ 6553600]
+    [1.8722]    [ 6553600]
+    [1.8739]    [ 6553600]
+    [1.8721]    [ 6553600]
+    [1.8755]    [ 6553600]
+
+ io speed for the worker 1: 16.66(MPix/sec)
+ io speed for the worker 2: 3.34(MPix/sec)
+ io speed for the worker 3: 3.34(MPix/sec)
+ io speed for the worker 4: 3.34(MPix/sec)
+ io speed for the worker 5: 3.34(MPix/sec)
+ io speed for the worker 6: 3.33(MPix/sec)
+ time to commbine input files with total size 32768000  in parallel: 26.492633(sec), speed 1.179573(MPix/sec)
+
+>> run_job Chunk 1024*32 binary IO. file: 1024*32*10000 pix
+time to run workers and job sizes
+    [81.0330]    [65536000]
+    [76.3303]    [65536000]
+    [66.7065]    [65536000]
+    [83.8555]    [65536000]
+    [83.6780]    [65536000]
+    [      0]    [       0]
+
+ io speed for the worker 1: 0.77(MPix/sec)
+ io speed for the worker 2: 0.82(MPix/sec)
+ io speed for the worker 3: 0.94(MPix/sec)
+ io speed for the worker 4: 0.75(MPix/sec)
+ io speed for the worker 5: 0.75(MPix/sec)
+ Parallel speed to write 5 input files with total size 327680000  : 107.604815(sec), speed 2.904145(MPix/sec)
+time to run workers and job sizes
+    [374.7187]    [327680000]
+    [373.3215]    [ 65536000]
+    [373.2426]    [ 65536000]
+    [373.2955]    [ 65536000]
+    [373.3310]    [ 65536000]
+    [373.2424]    [ 65536000]
+
+ io speed for the worker 1: 0.83(MPix/sec)
+ io speed for the worker 2: 0.17(MPix/sec)
+ io speed for the worker 3: 0.17(MPix/sec)
+ io speed for the worker 4: 0.17(MPix/sec)
+ io speed for the worker 5: 0.17(MPix/sec)
+ io speed for the worker 6: 0.17(MPix/sec)
+ time to commbine input files with total size 327680000  in parallel: 402.211036(sec), speed 0.776955(MPix/sec)
+>> run_job Chunk 1024*32 binary IO. file: 1024*32*1000 pix
+time to run workers and job sizes
+    [52.5930]    [32768000]
+    [69.6313]    [32768000]
+    [71.2755]    [32768000]
+    [61.3336]    [32768000]
+    [74.6177]    [32768000]
+    [73.1267]    [32768000]
+    [70.8848]    [32768000]
+    [74.1525]    [32768000]
+    [60.7490]    [32768000]
+    [63.9536]    [32768000]
+    [      0]    [       0]
+
+ io speed for the worker 1: 0.59(MPix/sec)
+ io speed for the worker 2: 0.45(MPix/sec)
+ io speed for the worker 3: 0.44(MPix/sec)
+ io speed for the worker 4: 0.51(MPix/sec)
+ io speed for the worker 5: 0.42(MPix/sec)
+ io speed for the worker 6: 0.43(MPix/sec)
+ io speed for the worker 7: 0.44(MPix/sec)
+ io speed for the worker 8: 0.42(MPix/sec)
+ io speed for the worker 9: 0.51(MPix/sec)
+ io speed for the worker 10: 0.49(MPix/sec)
+ Parallel speed to write 10 input files with total size 327680000  : 120.438467(sec), speed 2.59(MPix/sec)
+time to run workers and job sizes
+    [239.3233]    [327680000]
+    [239.1524]    [ 32768000]
+    [239.1616]    [ 32768000]
+    [239.1651]    [ 32768000]
+    [239.1610]    [ 32768000]
+    [239.2060]    [ 32768000]
+    [239.2045]    [ 32768000]
+    [239.2096]    [ 32768000]
+    [239.2411]    [ 32768000]
+    [239.2394]    [ 32768000]
+    [239.2423]    [ 32768000]
+
+ io speed for the worker 1: 1.31(MPix/sec)
+ io speed for the worker 2: 0.13(MPix/sec)
+ io speed for the worker 3: 0.13(MPix/sec)
+ io speed for the worker 4: 0.13(MPix/sec)
+ io speed for the worker 5: 0.13(MPix/sec)
+ io speed for the worker 6: 0.13(MPix/sec)
+ io speed for the worker 7: 0.13(MPix/sec)
+ io speed for the worker 8: 0.13(MPix/sec)
+ io speed for the worker 9: 0.13(MPix/sec)
+ io speed for the worker 10: 0.13(MPix/sec)
+ io speed for the worker 11: 0.13(MPix/sec)
+ time to commbine input files with total size 327680000  in parallel: 337.913284(sec), speed 0.92(MPix/sec)

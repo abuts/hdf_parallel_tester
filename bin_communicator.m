@@ -4,7 +4,8 @@ function [time,read_size] = bin_communicator(block_size,n_blocks,job_num)
 %               block_size*n_blocks*n_workers
 % job_num    -- debugging parameter used in serial execution to mimick the
 %               mpi labindex. Not used in parallel execution
-diary on
+%diary on
+do_logging = false;
 nl = numlabs;
 if ~exist('job_num','var')
     id = labindex-1;
@@ -12,6 +13,8 @@ else
     id  = job_num-1;
 end
 t0 = tic;
+
+
 %
 if id == 0
     f_name = 'targ_file.bin';
@@ -36,14 +39,18 @@ if id == 0
         clobR = onCleanup(@()par_clear(fhr));
         
     else
-        l_name = sprintf('worker_%d.log',labindex);        
-        fhr =  fopen(l_name,'w');
-        fprintf('receiver started\n');
+        if do_logging
+            l_name = sprintf('worker_%d.log',labindex);
+            fhr =  fopen(l_name,'w');
+            fprintf(fhr,'receiver started\n');
+        else
+            fhr = [];
+        end
     end
     
     
     for i=1:n_blocks
-        block = get_block(i,block_size,n_readers,fhr);
+        block = get_block(i,block_size,n_readers,fhr,do_logging);
         fwrite(fh,block,'single');
     end
     
@@ -55,28 +62,33 @@ else
     if fh<1
         error('PARALLEL_WRITER:io_error','Can not open file %s to read',f_name);
     end
-    l_name = sprintf('worker_%d.log',labindex);
-    fhl = fopen(l_name,'w');
+    if do_logging
+        l_name = sprintf('worker_%d.log',labindex);
+        fhl = fopen(l_name,'w');
+    end
     clob = onCleanup(@()fclose('all'));
     
     for i=1:n_blocks
         contents = fread(fh,[9,block_size],'*float32');
-        fprintf(fhl,'sending block N%d\n',i);
-        labSend(contents,1);
+        if do_logging
+            fprintf(fhl,'sending block N%d\n',i);
+        end
+        labSend(contents,1,i);
     end
     read_size = block_size*n_blocks;
     clear('clob');
 end
 time = toc(t0);
 
-function block = get_block(n_block,chunk_size,n_parts,par)
+function block = get_block(n_block,chunk_size,n_parts,par,do_logging)
 
 %block_size = size(block);
-if numel(par)<2
-    get_data = @(i)(labReceive(i+1));
-    check_exist = @(i)(labProbe(i+1));
-    do_logging = true;
-    fprintf('accignied mpi receivers\n');
+if numel(par)==1 || isempty(par)
+    get_data = @(i)(labReceive(i+1,n_block));
+    check_exist = @(i)(labProbe(i+1,n_block));
+    if do_logging        
+        fprintf(par,'accignied mpi receivers\n');
+    end
     
 else
     check_exist = @(i)(true);
@@ -88,7 +100,7 @@ n_received = 0;
 chunks_cache = cell(1,n_parts);
 while n_received~=n_parts
     if do_logging
-        fprintf(' expecting block %d from all workers\n',n_block)
+        fprintf(par,' expecting block %d from all workers\n',n_block);
     end
     for i=1:n_parts
         if check_exist(i)
@@ -97,7 +109,7 @@ while n_received~=n_parts
         end
     end
     if do_logging
-        fprintf(' block %d received\n',n_block)
+        fprintf(par,' received %d out of %d parts\n',n_received,n_parts);
     end
     
 end
