@@ -6,12 +6,16 @@ if ~exist('job_num','var')
 else
     id  = job_num;
 end
+
 if id == nl
+    time = 0;
+    size = 0;
     return;
 end
 if ~exist('chunk_size','var')
-    chunk_size = 16*1024;
+    chunk_size = block_size;
 end
+
 t0 = tic;
 
 f_name = sprintf('block_%d.hdf',id);
@@ -30,8 +34,8 @@ size = block_size*n_blocks;
 
 H5G.close(group_id);
 if ~isempty(file)
+    H5F.close(file);    
     H5G.close(fid);
-    H5F.close(file);
 else
     H5F.close(fid);
 end

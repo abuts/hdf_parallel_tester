@@ -32,16 +32,6 @@ classdef hdf_pix_group < handle
         %
         pix_range_ = [inf,-inf;inf,-inf;inf,-inf;inf,-inf];
     end
-    methods(Access = private)
-        function mem_space_id = get_cached_mem_space(obj,block_dims)
-            % function extracts memory space object from a data buffer
-            if obj.io_chunk_size_ ~= block_dims(1)
-                H5S.set_extent_simple(obj.io_mem_space_,2,block_dims,block_dims);
-                obj.io_chunk_size_ = block_dims(1);
-            end
-            mem_space_id = obj.io_mem_space_;
-        end
-    end
     
     methods
         function obj = hdf_pix_group(fid,n_pixels,chunk_size)
@@ -52,14 +42,27 @@ classdef hdf_pix_group < handle
             % all input parameters except fid will be ignored
             %Usage:
             % pix_wr = hdf_pixel_group(fid,n_pixels,[chunk_size]);
-            %          % creates pixel group to store specified number of pixels
+            %          creates pixel group to store specified number of
+            %          pixels.
             % chunk_size -- if present, specifies the chunk size of the
             %               chunked hdf dataset to create. If not, default
             %               class value is used
+            %          If the pixel dataset exists, and  its sizes are
+            %          different from the values, provided with this
+            %          command, the dataset will be recreated with new
+            %          parameters. Old dataset contents will be destroyed.
+            %
             % pix_wr = hdf_pixel_group(fid); open existing pixels group
             %                                for IO operations. Throws if
             %                                the group does not exist.
+            %          a writing (if any) occurs into an existing group
+            %          allowing to modify the contents of the pixel array.
             %
+            if exist('n_pixels','var')|| exist('chunk_size','var')
+                pix_size_redefined = true;
+            else
+                pix_size_redefined = false;
+            end
             if exist('chunk_size','var')
                 obj.chunk_size_ = chunk_size;
             else
@@ -95,6 +98,18 @@ classdef hdf_pix_group < handle
                 dcpl_id=H5D.get_create_plist(obj.pix_dataset_);
                 [~,h5_chunk_size] = H5P.get_chunk(dcpl_id);
                 obj.chunk_size_ = h5_chunk_size(1);
+                if pix_size_redefined
+                    n_pixels =  obj.get_extended_npix_(n_pixels,chunk_size);
+                    if obj.chunk_size_ ~= chunk_size
+                        error('HDF_PIX_GROUP:invalid_argument',...
+                            'Current chunk %d, new chunk %d. Can not change the chunk size of the existing dataset.',...
+                            obj.chunk_size_,chunk_size)
+                    elseif obj.max_num_pixels_ ~=n_pixels
+                        H5D.set_extent(obj.pix_dataset_,[n_pixels,9]);
+                        obj.max_num_pixels_ = n_pixels;
+                        obj.file_space_id_  = H5D.get_space(obj.pix_dataset_);                        
+                    end
+                end
                 pix_dapl_id = H5D.get_access_plist(obj.pix_dataset_);
                 [obj.cache_nslots_,obj.cache_size_]=H5P.get_chunk_cache(pix_dapl_id);
                 %chunk_size = obj.chunk_size_;
@@ -103,36 +118,10 @@ classdef hdf_pix_group < handle
                     error('HDF_PIX_GROUP:invalid_argument',...
                         'the pixels group does not exist but the size of the pixel dataset is not specified')
                 end
-                
-                n_blocks = n_pixels/chunk_size ;
-                if rem(n_pixels,chunk_size)>0
-                    n_blocks = floor(n_blocks) +1;
-                end
-                obj.max_num_pixels_ = chunk_size*n_blocks;
-                dims = [obj.max_num_pixels_,9];
-                chunk_dims = [chunk_size,9];
-                %
                 obj.pix_group_id_ = H5G.create(fid,group_name,10*numel(group_name));
                 write_attr_group(obj.pix_group_id_,struct('NX_class','NXdata'));
-                % size of the pixel cache
-                pn = primes(2050);
-                obj.cache_nslots_ = pn(end);
-                cache_n_bytes = obj.cache_nslots_*chunk_size*9*4*2;
-                %cache_n_bytes     = 0; %chunk_size*9*4;
-                obj.cache_size_   = cache_n_bytes;
                 
-                
-                dcpl_id = H5P.create('H5P_DATASET_CREATE');
-                H5P.set_chunk(dcpl_id, chunk_dims);
-                pix_dapl_id = H5P.create('H5P_DATASET_ACCESS');
-                H5P.set_chunk_cache(pix_dapl_id,obj.cache_nslots_,cache_n_bytes,1);
-                
-                obj.file_space_id_ = H5S.create_simple(2,dims,dims);
-                
-                obj.pix_dataset_= H5D.create(obj.pix_group_id_,group_name,...
-                    obj.pix_data_id_ ,obj.file_space_id_,...
-                    'H5P_DEFAULT',dcpl_id,pix_dapl_id);
-                
+                create_pix_dataset_(obj,group_name,n_pixels,chunk_size);
             end
             block_dims = [obj.chunk_size_,9];
             obj.io_mem_space_ = H5S.create_simple(2,block_dims,block_dims);
@@ -287,19 +276,76 @@ classdef hdf_pix_group < handle
             if ~isempty(obj.io_mem_space_)
                 H5S.close(obj.io_mem_space_);
             end
-            
-            if obj.file_space_id_ > 0
-                H5S.close(obj.file_space_id_);
-            end
-            if obj.pix_data_id_ > 0
+            if obj.pix_data_id_ ~= -1
                 H5T.close(obj.pix_data_id_);
+                obj.pix_data_id_ = -1;
             end
-            if obj.pix_dataset_ > 0
-                H5D.close(obj.pix_dataset_);
-            end
-            if obj.pix_group_id_ > 0
+            close_pix_dataset_(obj);
+            %
+            if obj.pix_group_id_ ~= -1
                 H5G.close(obj.pix_group_id_);
             end
+        end
+        
+    end
+    methods(Access = private)
+        %
+        function mem_space_id = get_cached_mem_space(obj,block_dims)
+            % function extracts memory space object from a data buffer
+            if obj.io_chunk_size_ ~= block_dims(1)
+                H5S.set_extent_simple(obj.io_mem_space_,2,block_dims,block_dims);
+                obj.io_chunk_size_ = block_dims(1);
+            end
+            mem_space_id = obj.io_mem_space_;
+        end
+        %
+        function close_pix_dataset_(obj)
+            if obj.file_space_id_ ~= -1
+                H5S.close(obj.file_space_id_);
+                obj.file_space_id_ = -1;
+            end
+            if obj.pix_dataset_ ~= -1
+                H5D.close(obj.pix_dataset_);
+                obj.pix_dataset_ = -1;
+            end
+        end
+        %
+        function  create_pix_dataset_(obj,dataset_name,n_pixels,chunk_size)
+            %
+            obj.max_num_pixels_ = obj.get_extended_npix_(n_pixels,chunk_size);
+            dims = [obj.max_num_pixels_,9];
+            chunk_dims = [chunk_size,9];
+            %
+            % size of the pixel cache
+            pn = 521; %primes(2050);
+            obj.cache_nslots_ = pn(end);
+            cache_n_bytes = obj.cache_nslots_*chunk_size*9*4;
+            %cache_n_bytes     = 0; %chunk_size*9*4;
+            obj.cache_size_   = cache_n_bytes;
+            
+            
+            dcpl_id = H5P.create('H5P_DATASET_CREATE');
+            H5P.set_chunk(dcpl_id, chunk_dims);
+            pix_dapl_id = H5P.create('H5P_DATASET_ACCESS');
+            H5P.set_chunk_cache(pix_dapl_id,obj.cache_nslots_,cache_n_bytes,1);
+            
+            obj.file_space_id_ = H5S.create_simple(2,dims,[H5ML.get_constant_value('H5S_UNLIMITED'),9]);
+            
+            obj.pix_dataset_= H5D.create(obj.pix_group_id_,dataset_name,...
+                obj.pix_data_id_ ,obj.file_space_id_,...
+                'H5P_DEFAULT',dcpl_id,pix_dapl_id);
+            
+        end
+    end
+    methods(Static,Access=private)
+        function npix = get_extended_npix_(n_pixels,chunk_size)
+            % get number of pixels proportional to a chunk size.
+            n_blocks = n_pixels/chunk_size ;
+            if rem(n_pixels,chunk_size)>0
+                n_blocks = floor(n_blocks) +1;
+                
+            end
+            npix = chunk_size*n_blocks;
         end
         
     end

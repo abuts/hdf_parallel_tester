@@ -6,9 +6,21 @@ if isempty(cl)
     cl  = parcluster();
 end
 if ~exist('filesize','var')
-    filesize = 1024*32*10000;
+    filesize = 1024*32*10;
 end
-n_workers = 11;
+n_workers = 6;
+use_hdf = false;
+block_size = 1024*32;
+
+if use_hdf 
+    file_creator = @(x,y)hdf_writer(x,y);
+    file_combiner =@(x,y)hdf_communicator(x,y);
+else
+    file_creator = @(x,y)bin_writer(x,y);    
+    file_combiner =@(x,y)bin_communicator(x,y);    
+end
+
+
 cl.NumWorkers = n_workers;
 %n_workers  = cl.NumWorkers;
 n_files = n_workers-1;
@@ -16,14 +28,14 @@ a_file_size = filesize/n_files;
 
 job = createCommunicatingJob(cl,'Type','SPMD');
 
-block_size = 1024*32;
+
 n_blocks = floor(a_file_size/block_size);
 %inputs = cell(1,n_workers);
 
 inputs = {block_size,n_blocks};
 
 
-createTask(job, @bin_writer, 2,inputs);
+createTask(job, file_creator, 2,inputs);
 t0 = tic;
 submit(job);
 wait(job)
@@ -51,7 +63,7 @@ fprintf(' Parallel speed to write %d input files with total size %d  : %f(sec), 
 
 
 job = createCommunicatingJob(cl,'Type','SPMD');
-createTask(job, @bin_communicator, 2,inputs);
+createTask(job, file_combiner, 2,inputs);
 t0 = tic;
 submit(job);
 wait(job)
