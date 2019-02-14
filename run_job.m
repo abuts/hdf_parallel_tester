@@ -15,6 +15,7 @@ block_size = 1024*32;
 if use_hdf 
     file_creator = @(x,y)hdf_writer(x,y);
     file_combiner =@(x,y)hdf_communicator(x,y);
+    %file_combiner =@(x,y)bin_communicator(x,y);       
 else
     file_creator = @(x,y)bin_writer(x,y);    
     file_combiner =@(x,y)bin_communicator(x,y);    
@@ -26,7 +27,7 @@ cl.NumWorkers = n_workers;
 n_files = n_workers-1;
 a_file_size = filesize/n_files;
 
-job = createCommunicatingJob(cl,'Type','SPMD');
+job = createCommunicatingJob(cl,'Type','SPMD','AutoAttachFiles',false);
 
 
 n_blocks = floor(a_file_size/block_size);
@@ -39,9 +40,10 @@ createTask(job, file_creator, 2,inputs);
 t0 = tic;
 submit(job);
 wait(job)
+t_end = toc(t0);
 
 out = fetchOutputs(job);
-t_end = toc(t0);
+
 disp('time to run workers and job sizes')
 disp(out);
 for i=1:size(out,1)
@@ -60,7 +62,6 @@ writ_size = sum(out(:,2));
 
 fprintf(' Parallel speed to write %d input files with total size %d  : %f(sec), speed %4.2f(MPix/sec)\n',...
     n_files,writ_size,t_end,writ_size/(t_end*1024*1024));
-
 
 job = createCommunicatingJob(cl,'Type','SPMD');
 createTask(job, file_combiner, 2,inputs);

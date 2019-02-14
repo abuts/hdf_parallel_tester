@@ -1,4 +1,8 @@
 function [time,size]=hdf_writer(block_size,n_blocks,job_num,chunk_size)
+her_loc = which('herbert_init.m');
+if isempty(her_loc)
+    horace_on();
+end
 
 nl = numlabs;
 if ~exist('job_num','var')

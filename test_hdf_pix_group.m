@@ -86,6 +86,17 @@ classdef test_hdf_pix_group < TestCase
             clear clob1;
             clear clob2;
         end
+        function test_missing_file(obj)
+            f_name = [tempname,'.nxsqw'];
+            
+            [fid,group_id,file_h] = open_or_create_nxsqw_head(f_name);
+            clob1 = onCleanup(@()close_fid(obj,fid,file_h,group_id));
+            clob2 = onCleanup(@()delete(f_name));
+            
+            f_missing = @()hdf_pix_group(group_id);
+            assertExceptionThrown(f_missing,'HDF_PIX_GROUP:runtime_error')
+            
+        end
         function test_multiblock_read(obj)
             f_name = [tempname,'.nxsqw'];
             

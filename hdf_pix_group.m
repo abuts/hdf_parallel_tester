@@ -59,9 +59,9 @@ classdef hdf_pix_group < handle
             %          allowing to modify the contents of the pixel array.
             %
             if exist('n_pixels','var')|| exist('chunk_size','var')
-                pix_size_redefined = true;
+                pix_size_defined = true;
             else
-                pix_size_redefined = false;
+                pix_size_defined = false;
             end
             if exist('chunk_size','var')
                 obj.chunk_size_ = chunk_size;
@@ -88,8 +88,8 @@ classdef hdf_pix_group < handle
                     error('HDF_PIX_GROUP:runtime_error',...
                         'can not retrieve pixels datasets dataspace');
                 end
-                [~,~,h5_maxdims] = H5S.get_simple_extent_dims(obj.file_space_id_);
-                obj.max_num_pixels_ = h5_maxdims(1);
+                [~,h5_dims,h5_maxdims] = H5S.get_simple_extent_dims(obj.file_space_id_);
+                obj.max_num_pixels_ = h5_dims(1);
                 if h5_maxdims(2) ~= 9
                     error('HDF_PIX_GROUP:runtime_error',...
                         'wrong size of pixel dataset. dimenison 1 has to be 9 but is: %d',...
@@ -98,7 +98,7 @@ classdef hdf_pix_group < handle
                 dcpl_id=H5D.get_create_plist(obj.pix_dataset_);
                 [~,h5_chunk_size] = H5P.get_chunk(dcpl_id);
                 obj.chunk_size_ = h5_chunk_size(1);
-                if pix_size_redefined
+                if pix_size_defined
                     n_pixels =  obj.get_extended_npix_(n_pixels,chunk_size);
                     if obj.chunk_size_ ~= chunk_size
                         error('HDF_PIX_GROUP:invalid_argument',...
@@ -117,6 +117,10 @@ classdef hdf_pix_group < handle
                 if nargin<1
                     error('HDF_PIX_GROUP:invalid_argument',...
                         'the pixels group does not exist but the size of the pixel dataset is not specified')
+                end
+                if ~pix_size_defined
+                    error('HDF_PIX_GROUP:runtime_error',...                    
+                        'Attempting to create new pixels group but the pixel number is not defined');
                 end
                 obj.pix_group_id_ = H5G.create(fid,group_name,10*numel(group_name));
                 write_attr_group(obj.pix_group_id_,struct('NX_class','NXdata'));
@@ -264,7 +268,7 @@ classdef hdf_pix_group < handle
             range  = obj.pix_range_;
         end
         function sz = get.cache_size(obj)
-            sz = obj.cache_size_/(36);
+            sz = uint32(obj.cache_size_/(36));
         end
         function sz = get.cache_nslots(obj)
             sz = obj.cache_nslots_;
@@ -273,7 +277,7 @@ classdef hdf_pix_group < handle
         %------------------------------------------------------------------
         function delete(obj)
             % close all and finish
-            if ~isempty(obj.io_mem_space_)
+            if obj.io_mem_space_ ~= -1
                 H5S.close(obj.io_mem_space_);
             end
             if obj.pix_data_id_ ~= -1

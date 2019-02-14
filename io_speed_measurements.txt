@@ -232,7 +232,7 @@ Block size:   131072 :Speed(MPix/sec): bin Write: 25.8: Read: 17.6: HDF Write: 1
 Block size:   262144 :Speed(MPix/sec): bin Write: 21.0: Read: 25.0: HDF Write: 15.3: Read:  22.1: HDF Write: 19.9: Read:  23.3:  HDF Write: 20.8: Read:  26.4:  HDF Write: 23.1: Read:  27.2
 Block size:   524288 :Speed(MPix/sec): bin Write: 18.7: Read: 12.3: HDF Write: 12.9: Read:  18.8: HDF Write: 19.2: Read:  22.6:  HDF Write: 19.7: Read:  19.9:  HDF Write: 21.2: Read:  26.2
 
-Chunk 1024*32 binary IO. file: 1024*32*1000 pix
+Chunk 32*1024 binary IO. file: 1024*32*1000 pix
 time to run workers and job sizes
     [0.2951]    [6553600]
     [0.3002]    [6553600]
