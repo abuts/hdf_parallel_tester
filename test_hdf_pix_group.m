@@ -120,38 +120,71 @@ classdef test_hdf_pix_group < TestCase
             assertTrue(isempty(pos));
             assertEqual(npix,10);
             
-            pos = [10,2000,5000];            
+            pos = [10,2000,5000];
             npix =[1024,2048,1000];
-            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);            
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);
             
             assertEqual(pix(3,1:1024),single(10:1033));
             assertEqual(numel(pos),2);
-            assertEqual(numel(npix),2);            
+            assertEqual(numel(npix),2);
             
-            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);                        
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);
             assertEqual(pix(1,1:2048),single(2000:(1999+2048)));
             assertEqual(numel(pos),1);
-            assertEqual(numel(npix),1);            
+            assertEqual(numel(npix),1);
             
-            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);                        
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);
             assertEqual(pix(1,1:1000),single(5000:(4999+1000)));
             assertTrue(isempty(pos));
-            assertEqual(npix,1000);            
-
+            assertEqual(npix,1000);
+            
             
             % single read operation as total size is smaller than the block
             % size
-            pos = [10,1000,2000];            
+            pos = [10,1000,2000];
             npix =[128,256,256];
-            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);            
+            [pix,pos,npix] = pix_acc.read_pixels(pos,npix);
             assertEqual(pix(1,385:(384+256)),single(2000:(1999+256)));
             assertEqual(numel(pos),1);
-            assertEqual(numel(npix),1);            
+            assertEqual(numel(npix),1);
             
             
             clear pix_acc;
             clear clob1;
             clear clob2;
+            
+        end
+        
+        function  test_mex_reader(obj)
+            if isempty(which('hdf_mex_accessor'))
+                warning('TEST_MEX_READER:runtime_error',...
+                    'the hdf mex reader was not found in the Matlab path');
+                return
+            end
+            
+            f_name = [tempname,'.nxsqw'];
+            
+            [fid,group_id,file_h] = open_or_create_nxsqw_head(f_name);
+            clob1 = onCleanup(@()delete(f_name));            
+            clob2 = onCleanup(@()close_fid(obj,fid,file_h,group_id));
+
+            
+            arr_size = 100000;
+            pix_acc = hdf_pix_group(group_id,arr_size,1024);
+            assertTrue(exist(f_name,'file')==2);
+            clob3 = onCleanup(@()delete(pix_acc));
+            
+            data = repmat(1:arr_size,9,1);
+            pix_acc.write_pixels(1,data);
+            
+            % check mex file is callable
+            rev = hdf_mex_accessor();
+            assertTrue(~isempty(rev));
+            
+            
+            clear clob3;
+            clear clob2;            
+            clear clob1;
             
         end
     end
