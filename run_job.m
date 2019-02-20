@@ -6,17 +6,19 @@ if isempty(cl)
     cl  = parcluster();
 end
 if ~exist('filesize','var')
-    filesize = 1024*32*10;
+    filesize = 1024*32*10000;
 end
-n_workers = 6;
-use_hdf = false;
+n_workers = 8;
+use_hdf = true;
 block_size = 1024*32;
 
 if use_hdf 
+    disp(' **********  Using hdf IO *******************')
     file_creator = @(x,y)hdf_writer(x,y);
     file_combiner =@(x,y)hdf_communicator(x,y);
     %file_combiner =@(x,y)bin_communicator(x,y);       
 else
+    disp(' **********  Using binaly IO ****************')    
     file_creator = @(x,y)bin_writer(x,y);    
     file_combiner =@(x,y)bin_communicator(x,y);    
 end
