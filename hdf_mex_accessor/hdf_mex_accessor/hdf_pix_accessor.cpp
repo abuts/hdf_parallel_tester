@@ -115,18 +115,18 @@ void hdf_pix_accessor::close_pix_dataset() {
 *  does not work for overlapping pixels regions so pixels regions should not be overlapping
 *
 */
-hsize_t hdf_pix_accessor::read_pixels(std::vector<size_t> &block_pos, std::vector<size_t> &block_sizes,
-	size_t start_pos, float *const pix_buffer, size_t pix_buf_size) {
+hsize_t hdf_pix_accessor::read_pixels(uint64_t **block_pos, uint64_t **block_sizes,
+	 size_t n_blocks_in_blocks,size_t &start_pos, float *const pix_buffer, size_t pix_buf_size) {
 
 	//hsize_t n_hs_blocks[2]    = { 1,1 };
 	hsize_t block_start[2]    = { 0,0 };
 	hsize_t pix_chunk_size[2] = { 0,9 };
 	hsize_t read_pos(start_pos);
 
-	tester(block_pos[2]);
+	tester(*block_pos[2]);
 
-	size_t n_blocks = block_pos.size() - start_pos;
-	size_t npix_to_read = this->set_block_params(block_sizes[start_pos], block_sizes[start_pos], pix_buf_size, block_start, pix_chunk_size,read_pos);
+	size_t n_blocks = n_blocks_in_blocks - start_pos;
+	size_t npix_to_read = this->set_block_params(*block_sizes[start_pos], *block_sizes[start_pos], pix_buf_size, block_start, pix_chunk_size,read_pos);
 
 	herr_t err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_SET, block_start, NULL, pix_chunk_size, NULL);
 	if (err < 0) {
@@ -136,10 +136,10 @@ hsize_t hdf_pix_accessor::read_pixels(std::vector<size_t> &block_pos, std::vecto
 	size_t cur_pos(start_pos);
 	for (size_t i = 1; i < n_blocks; ++i) {
 		cur_pos = start_pos + i;
-		n_prov_pix += block_sizes[cur_pos];
+		n_prov_pix += *block_sizes[cur_pos];
 		if (n_prov_pix > pix_buf_size)break;
 
-		size_t n_selected = this->set_block_params(block_pos[cur_pos],block_sizes[cur_pos], pix_buf_size, block_start, pix_chunk_size, read_pos);
+		size_t n_selected = this->set_block_params(*block_pos[cur_pos],*block_sizes[cur_pos], pix_buf_size, block_start, pix_chunk_size, read_pos);
 		if (n_selected < 1)break;
 
 		err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_OR, block_start, NULL, pix_chunk_size, NULL);
@@ -159,7 +159,7 @@ hsize_t hdf_pix_accessor::read_pixels(std::vector<size_t> &block_pos, std::vecto
 	return read_pos;
 
 }
-size_t hdf_pix_accessor::set_block_params(size_t &block_pos, size_t &block_size, size_t pix_buf_size, 
+size_t hdf_pix_accessor::set_block_params(uint64_t &block_pos, uint64_t &block_size, size_t pix_buf_size,
 	hsize_t *const block_start, hsize_t *const pix_chunk_size, hsize_t &read_pos) {
 
 	bool advance(true);

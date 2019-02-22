@@ -145,9 +145,8 @@ classdef test_hdf_pix_group < TestCase
             npix =[128,256,256];
             [pix,pos,npix] = pix_acc.read_pixels(pos,npix);
             assertEqual(pix(1,385:(384+256)),single(2000:(1999+256)));
-            assertEqual(numel(pos),1);
-            assertEqual(numel(npix),1);
-            
+            asserttTrue(isempty(pos));
+            asserttTrue(isempty(npix));
             
             clear pix_acc;
             clear clob1;
@@ -165,9 +164,9 @@ classdef test_hdf_pix_group < TestCase
             f_name = [tempname,'.nxsqw'];
             
             [fid,group_id,file_h] = open_or_create_nxsqw_head(f_name);
-            clob1 = onCleanup(@()delete(f_name));            
+            clob1 = onCleanup(@()delete(f_name));
             clob2 = onCleanup(@()close_fid(obj,fid,file_h,group_id));
-
+            
             
             arr_size = 100000;
             pix_acc = hdf_pix_group(group_id,arr_size,1024);
@@ -181,9 +180,19 @@ classdef test_hdf_pix_group < TestCase
             rev = hdf_mex_accessor();
             assertTrue(~isempty(rev));
             
+            [pix_array,pix_block_sizes,next_pix_pos]=hdf_mex_accessor('close','close');
+            assertTrue(isempty(pix_array))
+            assertEqual(next_pix_pos,0);
+            
+            [root_nx_path,~,data_structure] = find_root_nexus_dir(f_name,"NXSQW");
+            group_name = data_structure.GroupHierarchy.Groups.Groups(1).Name;
+            
+            pos = [10,2000,5000];
+            npix =[1024,2048,1000];
+            [pix_array,npix,next_pix_pos]=hdf_mex_accessor(f_name,group_name,pos,npix,2048);
             
             clear clob3;
-            clear clob2;            
+            clear clob2;
             clear clob1;
             
         end
