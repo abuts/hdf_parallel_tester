@@ -41,9 +41,12 @@ T retrieve_value(const char*err_id, const mxArray *prhs) {
 	return static_cast<T>(pVector[0]);
 }
 
-void retrieve_vector(const char*err_id, const mxArray *prhs, uint64_t **pVector, size_t &vec_size, int &vec_bytes) {
+template<class T>
+T* retrieve_vector(const char*err_id, const mxArray *prhs, size_t &vec_size, int &vec_bytes) {
 
-	*pVector = reinterpret_cast<uint64_t *>(mxGetPr(prhs));
+	double *pPtr = mxGetPr(prhs);
+
+	T *pVector = reinterpret_cast<T *>(pPtr);
 
 	size_t m_size_a = mxGetM(prhs);
 	size_t n_size_a = mxGetN(prhs);
@@ -66,6 +69,7 @@ void retrieve_vector(const char*err_id, const mxArray *prhs, uint64_t **pVector,
 	}
 
 	vec_bytes = get_byte_length(err_id, prhs);
+	return pVector;
 }
 
 void retrieve_string(const mxArray *param, std::string &result, const char *ErrorPrefix) {
@@ -84,11 +88,11 @@ void retrieve_string(const mxArray *param, std::string &result, const char *Erro
 	/* Copy the string data from string_array_ptr and place it into buf. */
 	if (mxGetString(param, pBuf, buflen) != 0) {
 		std::stringstream err;
-		err << " Can not convert string data while processing" << ErrorPrefix << "\n";
+		err << " Can not convert string data while processing " << ErrorPrefix << "\n";
 		mexErrMsgIdAndTxt("HDF_MEX_ACCESS:invalid_argument",
 			err.str().c_str());
 	}
-
+	result.erase(buflen - 1, 1);
 }
 
 /** The variable keeping information about the recent input file to identify status of subsequent access requests to this file*/
@@ -101,25 +105,26 @@ input_file current_input_file;
 new_file          -- the structure, containing filename and datafolder to process.
 block_positions   -- pointer to the array of the posisions of the blocks to read
 block_sizes       -- pointer to the array of the posisions of the blocks to read
-n_blocks_to_read  -- the size of the block positions and block sizes array
+n_blocks_provided -- the size of the block positions and block sizes array
 n_bytes           -- the size of the pointer of block_positions and block_size array
-start_pos         -- the initial position in the block_positions/block_size arrays to
-					 read data from.
+n_blocks_2_read   -- number of blocks to read until buffer is full
+
 buf_size          -- the maximal number of pixels to read in one operation
 num_threads       -- number of OMP threads to use in i/o operation
 */
 input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[],
 	input_file &new_file,
-	uint64_t *block_pos[], uint64_t *block_size[], size_t &n_blocks_to_read, int &n_bytes, size_t &start_pos,
-	size_t &buf_size, size_t &n_threads) {
+	double *&block_pos, double *&block_size, size_t &n_blocks_provided, int &n_bytes,
+	size_t &buf_size, size_t &n_threads, size_t &npix_to_read) {
 
 	input_types input_kind;
 
 	//* Check for proper number of arguments. */
 	{
-		if (nrhs != N_INPUT_Arguments && nrhs != 2) {
+		if (nrhs != N_INPUT_Arguments && nrhs != N_INPUT_Arguments - 1 && nrhs != 2) {
 			std::stringstream buf;
-			buf << " mex needs 2 or " << (short)N_INPUT_Arguments << " inputs but got " << (short)nrhs
+			buf << " mex needs 2 or " << (short)N_INPUT_Arguments << "or" << short(N_INPUT_Arguments - 1)
+				<< " inputs but got " << (short)nrhs
 				<< " input(s) and " << (short)nlhs << " output(s)\n";
 			mexErrMsgIdAndTxt("HDF_MEX_ACCESS:invalid_argument",
 				buf.str().c_str());
@@ -145,11 +150,12 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
 	retrieve_string(prhs[pixel_group_name], new_file.groupname, "pixel_group_name");
 
 	if (new_file.do_destructor()) {
-		block_pos = NULL;
-		block_pos = NULL;
-		n_blocks_to_read = 0;
+		block_pos = nullptr;
+		block_size = nullptr;
+		npix_to_read = 0;
+		n_blocks_provided = 0;
 		n_bytes = 0;
-		start_pos = 0;
+		//n_blocks_2_read = 0;
 		buf_size = 0;
 		n_threads = 0;
 		return close_file;
@@ -164,40 +170,50 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
 	}
 
 	if (nrhs != N_INPUT_Arguments) {
-		std::stringstream err;
-		err << " if mex used to access the data it needs " << (short)N_INPUT_Arguments << "input arguments but got " << (short)nrhs
-			<< " input arguments\n";
-		mexErrMsgIdAndTxt("HDF_MEX_ACCESS:invalid_argument",
-			err.str().c_str());
+		if (nrhs == N_INPUT_Arguments - 1) {
+			n_threads = 1;
+		}
+		else {
+			std::stringstream err;
+			err << " if mex used to access the data it needs " << (short)N_INPUT_Arguments
+				<< " input arguments but got " << (short)nrhs
+				<< " input arguments\n";
+			mexErrMsgIdAndTxt("HDF_MEX_ACCESS:invalid_argument",
+				err.str().c_str());
+		}
+	}
+	else {
+		n_threads = retrieve_value<size_t>("number_of_threads", prhs[num_threads]);
 	}
 	size_t n_blocks;
-	retrieve_vector("block_positions", prhs[block_positions], block_pos, n_blocks, n_bytes);
-	retrieve_vector("block_sizes", prhs[block_sizes], block_size, n_blocks, n_bytes);
-
-	start_pos = retrieve_value<size_t>("start_position", prhs[start_position]);
-	buf_size = retrieve_value<size_t>("pixel_buffer_size", prhs[pix_buf_size]);
-	n_threads = retrieve_value<size_t>("number_of_threads", prhs[num_threads]);
-
-	if (start_pos > n_blocks) {
-		input_kind = close_file;
-		return input_kind;
+	block_pos = retrieve_vector<double>("block_positions", prhs[block_positions], n_blocks, n_bytes);
+	block_size = retrieve_vector<double>("block_sizes", prhs[block_sizes], n_blocks_provided, n_bytes);
+	if (n_blocks != n_blocks_provided) {
+		mexErrMsgIdAndTxt("HDF_MEX_ACCESS:invalid_argument",
+			" sizes of pix positions array and block sizes array should be equal but they are not");
 	}
 
-	uint64_t n_pix_to_read(0), n_pix_to_read_next(0);
-	n_blocks_to_read = 0;
-	for (size_t i = start_pos; i < n_blocks; ++i) {
 
+	buf_size = retrieve_value<size_t>("pixel_buffer_size", prhs[pix_buf_size]);
+
+
+	if (n_blocks_provided == 0 || buf_size == 0) { // nothing to do. 
+		input_kind = close_file;
+	}
+
+	npix_to_read = 0;
+	for (size_t i = 0; i < n_blocks; ++i) {
 		if (n_bytes == 8)
-			n_pix_to_read_next += *reinterpret_cast<uint64_t *>(block_size + n_bytes * i);
+			npix_to_read += static_cast<uint64_t>(block_size[i]);
 		else
-			n_pix_to_read_next += *reinterpret_cast<uint32_t *>(block_size + n_bytes * i);
+			npix_to_read += static_cast<uint32_t>(block_size[i]);
 
-		if (n_pix_to_read_next > buf_size) {
-			//The case when single block is bigger than the pixels buffer so part of the block needs to be read should be considered separately
+		if (npix_to_read >= buf_size) {
+			npix_to_read = buf_size;
 			break;
 		}
-		n_pix_to_read = n_pix_to_read_next;
-		n_blocks_to_read++;
+
+
 	}
 
 	return input_kind;

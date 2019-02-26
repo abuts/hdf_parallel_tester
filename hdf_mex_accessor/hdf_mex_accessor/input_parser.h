@@ -10,13 +10,12 @@ enum input_types {
 	open_and_read_data,
 	read_initiated_data
 };
-enum InputArguments {
+enum InputArguments { // all input arguments
 	filename,
 	pixel_group_name,
 
 	block_positions,
 	block_sizes,
-	start_position,
 
 	pix_buf_size,
 	num_threads,
@@ -25,8 +24,8 @@ enum InputArguments {
 
 enum OutputArguments { // unique output arguments,
 	pix_array,
-	read_block_sizes,
-	last_read_block_number,
+	block_positions_left,
+	block_sizes_left,
 	N_OUTPUT_Arguments
 };
 
@@ -46,7 +45,7 @@ struct input_file {
 		else return false;
 	}
 	bool do_destructor() {
-		if (this->filename.compare("close") || this->groupname.compare("close"))return true;
+		if ((this->filename.compare("close") == 0) || (this->groupname.compare("close") == 0))return true;
 		else return false;
 	}
 	input_file& operator=(const input_file& other) {
@@ -61,5 +60,5 @@ struct input_file {
 
 input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[],
 	input_file &new_file,
-	uint64_t *block_pos[], uint64_t *block_size[], size_t &n_blocks, int &n_bytes, size_t &start_pos,
-	size_t &buf_size, size_t &n_threads);
+	double *&block_pos, double *&block_size, size_t &n_blocks, int &n_bytes,
+	size_t &buf_size, size_t &n_threads,size_t &npix_to_read);

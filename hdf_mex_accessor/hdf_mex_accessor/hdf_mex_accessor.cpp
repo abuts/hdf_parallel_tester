@@ -16,22 +16,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 	//* Check and parce input  arguments. */
 	input_file new_input_file;
-	uint64_t **pBlock_pos(NULL);
-	uint64_t **pBlock_sizes(NULL);
-	size_t n_blocks,start_pos,pix_buf_size,n_threads;
+	double *pBlock_pos(nullptr);
+	double *pBlock_sizes(nullptr);
+	size_t n_blocks, pix_buf_size, n_threads;
+	hsize_t first_block_non_read(1);
+	size_t npix_to_read;
 	int n_bytes(0);
 
 	auto work_type = parse_inputs(nlhs, plhs, nrhs, prhs,
 		new_input_file,
-		pBlock_pos, pBlock_pos, n_blocks, n_bytes, start_pos,
-		pix_buf_size, n_threads);
+		pBlock_pos, pBlock_sizes, n_blocks, n_bytes,
+		pix_buf_size, n_threads,npix_to_read);
 
 	if (work_type != close_file && pFile_reader.get() == nullptr) {
 		work_type = open_and_read_data;
 	}
-	plhs[pix_array] = mxCreateNumericMatrix(9, pix_buf_size, mxSINGLE_CLASS, mxREAL);
-	plhs[read_block_sizes] = mxDuplicateArray(prhs[block_sizes]);
-	plhs[last_read_block_number] = mxCreateDoubleScalar(start_pos);
+	if (nlhs > 0) {
+		plhs[pix_array] = mxCreateNumericMatrix(9, npix_to_read, mxSINGLE_CLASS, mxREAL);
+	}
 
 	float *pixArray = mxGetSingles(plhs[pix_array]);
 	switch (work_type)
@@ -43,13 +45,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		pFile_reader.reset(new hdf_pix_accessor());
 		pFile_reader->init(new_input_file.filename, new_input_file.groupname);
 	case read_initiated_data:
-		pFile_reader->read_pixels(pBlock_pos, pBlock_pos, n_blocks,start_pos,
+		pFile_reader->read_pixels(pBlock_pos, pBlock_sizes, n_blocks, first_block_non_read,
 			pixArray, pix_buf_size);
 		break;
 	default:
 		break;
 	}
-	double *pLastBlock = (double *)mxGetPr(plhs[last_read_block_number]);
-	*pLastBlock = double(start_pos);
+
+	if (nlhs > 1) {
+		if (first_block_non_read >= n_blocks) {
+			plhs[block_positions_left] = mxCreateNumericMatrix(0, 0, mxDOUBLE_CLASS, mxREAL);
+			plhs[block_sizes_left] = mxCreateNumericMatrix(0, 0, mxDOUBLE_CLASS, mxREAL);
+		}
+		else {
+			size_t n_blocks_left = n_blocks - first_block_non_read;
+			plhs[block_positions_left] = mxCreateNumericMatrix(n_blocks_left, 1, mxDOUBLE_CLASS, mxREAL);
+			plhs[block_sizes_left] = mxCreateNumericMatrix(n_blocks_left, 1, mxDOUBLE_CLASS, mxREAL);
+
+			auto pTargPos = mxGetPr(plhs[block_positions_left]);
+			auto pTargSizes = mxGetPr(plhs[block_sizes_left]);
+			for (size_t i = first_block_non_read; i < n_blocks; i++) {
+				pTargPos[i - first_block_non_read] = pBlock_pos[i];
+				pTargSizes[i - first_block_non_read] = pBlock_sizes[i];
+			}
+
+		}
+
+	}
+
 }
 

@@ -16,7 +16,7 @@ hdf_pix_accessor::hdf_pix_accessor()
 
 
 }
-void tester(size_t &value ) {
+void tester(double &value) {
 	value++;
 }
 
@@ -51,7 +51,7 @@ void hdf_pix_accessor::init(const std::string &in_filename, const std::string &i
 
 	//
 	this->file_space_id = H5Dget_space(this->pix_dataset);
-	if (this->file_space_id) {
+	if (this->file_space_id < 0) {
 		mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "can not retrieve pixels dataspace on file");
 	}
 	int n_dims = H5Sget_simple_extent_ndims(this->file_space_id);
@@ -115,163 +115,103 @@ void hdf_pix_accessor::close_pix_dataset() {
 *  does not work for overlapping pixels regions so pixels regions should not be overlapping
 *
 */
-hsize_t hdf_pix_accessor::read_pixels(uint64_t **block_pos, uint64_t **block_sizes,
-	 size_t n_blocks_in_blocks,size_t &start_pos, float *const pix_buffer, size_t pix_buf_size) {
+hsize_t hdf_pix_accessor::read_pixels(double *const block_pos, double *const block_sizes,
+	size_t n_blocks, size_t &first_block_non_read, float *const pix_buffer, size_t pix_buf_size) {
 
 	//hsize_t n_hs_blocks[2]    = { 1,1 };
-	hsize_t block_start[2]    = { 0,0 };
+	hsize_t block_start[2] = { 0,0 };
 	hsize_t pix_chunk_size[2] = { 0,9 };
-	hsize_t read_pos(start_pos);
+	first_block_non_read = 0;
+	hsize_t n_pix_to_read(0);
 
-	tester(*block_pos[2]);
 
-	size_t n_blocks = n_blocks_in_blocks - start_pos;
-	size_t npix_to_read = this->set_block_params(*block_sizes[start_pos], *block_sizes[start_pos], pix_buf_size, block_start, pix_chunk_size,read_pos);
+	bool selection_completed = this->set_block_params(block_pos[0], block_sizes[0],
+		n_pix_to_read, pix_buf_size,
+		block_start, pix_chunk_size, first_block_non_read);
 
 	herr_t err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_SET, block_start, NULL, pix_chunk_size, NULL);
 	if (err < 0) {
 		mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
 	}
-	size_t n_prov_pix(npix_to_read);
-	size_t cur_pos(start_pos);
-	for (size_t i = 1; i < n_blocks; ++i) {
-		cur_pos = start_pos + i;
-		n_prov_pix += *block_sizes[cur_pos];
-		if (n_prov_pix > pix_buf_size)break;
+	if (!selection_completed) {
+		for (size_t i = 1; i < n_blocks; ++i) {
 
-		size_t n_selected = this->set_block_params(*block_pos[cur_pos],*block_sizes[cur_pos], pix_buf_size, block_start, pix_chunk_size, read_pos);
-		if (n_selected < 1)break;
+			bool selection_completed = this->set_block_params(block_pos[i], block_sizes[i],
+				n_pix_to_read, pix_buf_size,
+				block_start, pix_chunk_size, first_block_non_read);
 
-		err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_OR, block_start, NULL, pix_chunk_size, NULL);
-		if (err < 0) {
-			mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
+			err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_OR, block_start, NULL, pix_chunk_size, NULL);
+			if (err < 0) {
+				mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
+			}
+			if (selection_completed)break;
 		}
-		npix_to_read = npix_to_read+ n_selected;
 	}
-	if (this->io_chunk_size_ != npix_to_read) {
-		H5Sset_extent_simple(this->io_mem_space, 2, pix_chunk_size, pix_chunk_size);
-		this->io_chunk_size_ = npix_to_read;
+	if (this->io_chunk_size_ != n_pix_to_read) {
+		hsize_t mem_chunk_size[2] = { n_pix_to_read,9 };
+		err = H5Sset_extent_simple(this->io_mem_space, 2, mem_chunk_size, mem_chunk_size);
+		if (err < 0)
+			mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not extend memory dataspace to load pixels");
+		this->io_chunk_size_ = n_pix_to_read;
 	}
 	err = H5Dread(this->pix_dataset, this->pix_data_id, this->io_mem_space, this->file_space_id, H5P_DEFAULT, pix_buffer);
-	if (err < 0) {
+	if (err < 0)
 		mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Error reading pixels");
-	}
-	return read_pos;
+
+	return n_pix_to_read;
 
 }
-size_t hdf_pix_accessor::set_block_params(uint64_t &block_pos, uint64_t &block_size, size_t pix_buf_size,
-	hsize_t *const block_start, hsize_t *const pix_chunk_size, hsize_t &read_pos) {
+/* generate parameters of the selection hyperslab from a pixels block parameters ensuring the total selection
+   size would not exceed the limits i.e. pixels buffer size and the data range*/
+bool hdf_pix_accessor::set_block_params(double &rBlock_pos, double &rBlock_size,
+	size_t &n_pix_selected, size_t pix_buf_size,
+	hsize_t *const block_start, hsize_t *const pix_chunk_size,
+	hsize_t &n_first_block_left) {
 
 	bool advance(true);
+	bool selection_completed(false);
+	// input block positions provided as in Matlab/Fortran (starting from 1) so C position is one less
+	hsize_t sel_block_pos = static_cast<hsize_t>(rBlock_pos)-1;
+	hsize_t sel_block_size = static_cast<hsize_t>(rBlock_size);
 
-	if (block_size > pix_buf_size) {
-		block_size = pix_buf_size;
+	/* check if we have selected enough pixels*/
+	size_t n_pix_preselected(n_pix_selected);
+	n_pix_preselected += sel_block_size;
+	if (n_pix_preselected > pix_buf_size) {
+		sel_block_size = pix_buf_size - n_pix_selected;
+		/* modify partially selected block*/
 		advance = false;
+		selection_completed = true;
+	}
+	else if (n_pix_preselected == pix_buf_size) {
+		advance = true;
+		selection_completed = true;
+
 	}
 
-	if (block_pos + block_size > this->max_num_pixels_) {
-		block_size = this->max_num_pixels_ - block_pos;
-		block_pos  = this->max_num_pixels_;
-		advance = false;
+	/* check if we got to the end of the pixels data*/
+	if (sel_block_pos + sel_block_size > this->max_num_pixels_) {
+		mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", 
+			"Attempt to read pixels beyond of existing range of the pixels");
 	}
 
-	block_start[0] = block_pos;
-	pix_chunk_size[0] = block_size;
 
-	if (advance) read_pos++;
+	block_start[0] = sel_block_pos;
+	pix_chunk_size[0] = sel_block_size;
+	n_pix_selected += sel_block_size;
 
-	return block_size;
+	if (advance) {
+		n_first_block_left++;
+	}
+	else {
+		rBlock_size -= static_cast<double>(sel_block_size);
+		rBlock_pos += static_cast<double>(sel_block_size)+1;
+	}
+
+
+	return selection_completed;
 }
-/*
-if numel(start_pos) == 1
-	block_start = [start_pos - 1, 0];
-	pix_chunk_size = [n_pix, 9];
 
-if obj.io_chunk_size_ ~= n_pix
-H5S.set_extent_simple(obj.io_mem_space_, 2, pix_chunk_size, pix_chunk_size);
-obj.io_chunk_size_ = n_pix;
-end
-
-
-H5S.select_hyperslab(obj.file_space_id_, 'H5S_SELECT_SET', block_start, [], [], pix_chunk_size);
-pixels = H5D.read(obj.pix_dataset_, 'H5ML_DEFAULT', obj.io_mem_space_, obj.file_space_id_, 'H5P_DEFAULT');
-
-start_pos = [];
-else
-if numel(n_pix) ~= numel(start_pos)
-if numel(n_pix) == 1
-npix = ones(numel(start_pos), 1)*n_pix;
-else
-error('HDF_PIX_GROUP:invalid_argument', ...
-	'number of pix blocks (%d) has to be equal to the number of pix positions (%d) or be equal to 1', ...
-	numel(n_pix), numel(start_post));
-end
-else
-if size(n_pix, 2) ~= 1
-npix = n_pix';
-else
-npix = n_pix;
-end
-end
-if size(start_pos, 2) ~= 1
-block_start = start_pos'-1;
-else
-block_start = start_pos - 1;
-end
-
-n_blocks = numel(start_pos);
-block_start = [block_start, zeros(n_blocks, 1)];
-pix_sizes = ones(n_blocks, 1) * 9;
-pix_chunk_size = [npix, pix_sizes];
-
-H5S.select_hyperslab(obj.file_space_id_, 'H5S_SELECT_SET', block_start(1, :), [], [], pix_chunk_size(1, :));
-
-if npix(1) + npix(2) > obj.chunk_size_
-selected_size = npix(1);
-last_block2select = 1;
-else
-npix_tot = cumsum(npix);
-last_block2select = find(npix_tot > obj.chunk_size_, 1) - 1;
-if isempty(last_block2select)
-last_block2select = n_blocks;
-%elseif last_block2select == 1 this is covered by npix(1) + npix(2) > obj.chunk_size_
-end
-chunk_ind = 2:last_block2select;
-
-arrayfun(@(ind)H5S.select_hyperslab(obj.file_space_id_, 'H5S_SELECT_OR', block_start(ind, :), [], [], pix_chunk_size(ind, :)), chunk_ind);
-selected_size = npix_tot(last_block2select);
-end
-
-%                 selected_size = pix_chunk_size(1, 1);
-%                 n_blocks_selected = 1;
-%                 if selected_size < obj.cache_size
-	%                     for i = 2:n_blocks
-	% next_size = selected_size + pix_chunk_size(i, 1);
-%                         if selected_size > obj.chunk_size_
-%                             break;
-%                         end
-%                         selected_size = next_size;
-%                         H5S.select_hyperslab(obj.file_space_id_, 'H5S_SELECT_OR', block_start(i, :), [], [], pix_chunk_size(i, :));
-%                         n_blocks_selected = n_blocks_selected + 1;
-%                     end
-%                 end
-start_pos = start_pos(last_block2select + 1:end);
-if numel(n_pix) > 1
-n_pix = n_pix(last_block2select + 1:end);
-end
-
-mem_block_size = [selected_size, 9];
-if obj.io_chunk_size_ ~= selected_size
-H5S.set_extent_simple(obj.io_mem_space_, 2, mem_block_size, mem_block_size);
-obj.io_chunk_size_ = selected_size;
-end
-
-pixels = H5D.read(obj.pix_dataset_, 'H5ML_DEFAULT', obj.io_mem_space_, obj.file_space_id_, 'H5P_DEFAULT');
-
-
-end
-end
-*/
 hdf_pix_accessor::~hdf_pix_accessor()
 {
 	if (this->io_mem_space != -1) {
