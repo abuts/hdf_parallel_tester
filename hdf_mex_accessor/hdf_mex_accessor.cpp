@@ -35,7 +35,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		plhs[pix_array] = mxCreateNumericMatrix(9, npix_to_read, mxSINGLE_CLASS, mxREAL);
 	}
 
-	float *pixArray = mxGetSingles(plhs[pix_array]);
+	float *pixArray = (float*)mxGetPr(plhs[pix_array]);
 	switch (work_type)
 	{
 	case close_file:

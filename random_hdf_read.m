@@ -24,7 +24,7 @@ block_size = ends-starts;
 [pos,block_size] = compact_overlapping(starts,block_size);
 
 
-if exist('hdf_mex_accessor.mexw64','file')
+if exist('hdf_mex_reader.mexw64','file')
     [root_nx_path,~,data_structure] = find_root_nexus_dir(f_name,"NXSQW");
     group_name = data_structure.GroupHierarchy.Groups.Groups(1).Name;
     buf_size = 10000000;
@@ -34,10 +34,10 @@ if exist('hdf_mex_accessor.mexw64','file')
     
     real_sz = 0;
     while(~isempty(pos))
-        [pix_array,pos,block_size]=hdf_mex_accessor(f_name,group_name,pos,block_size,buf_size);
+        [pix_array,pos,block_size]=hdf_mex_reader(f_name,group_name,pos,block_size,buf_size);
         real_sz  = real_sz+size(pix_array,2);
     end
-    hdf_mex_accessor('close','close')
+    hdf_mex_reader('close','close')
 else
     [fid,group_id] = open_or_create_nxsqw_head(f_name);
     % read PIXELS

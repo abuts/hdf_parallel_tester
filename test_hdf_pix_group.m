@@ -155,7 +155,7 @@ classdef test_hdf_pix_group < TestCase
         end
         
         function  test_mex_reader(obj)
-            if isempty(which('hdf_mex_accessor'))
+            if isempty(which('hdf_mex_reader'))
                 warning('TEST_MEX_READER:runtime_error',...
                     'the hdf mex reader was not found in the Matlab path');
                 return
@@ -182,10 +182,10 @@ classdef test_hdf_pix_group < TestCase
             pix_acc.write_pixels(1,data);
             
             % check mex file is callable
-            rev = hdf_mex_accessor();
+            rev = hdf_mex_reader();
             assertTrue(~isempty(rev));
             
-            [pix_array,next_pix_pos,pix_block_sizes]=hdf_mex_accessor('close','close');
+            [pix_array,next_pix_pos,pix_block_sizes]=hdf_mex_reader('close','close');
             assertTrue(isempty(pix_array))
             assertTrue(isempty(next_pix_pos));
             assertTrue(isempty(pix_block_sizes));
@@ -193,13 +193,13 @@ classdef test_hdf_pix_group < TestCase
             [root_nx_path,~,data_structure] = find_root_nexus_dir(f_name,"NXSQW");
             group_name = data_structure.GroupHierarchy.Groups.Groups(1).Name;
             
-            ferr = @()hdf_mex_accessor(f_name,group_name);
+            ferr = @()hdf_mex_reader(f_name,group_name);
             assertExceptionThrown(ferr,'HDF_MEX_ACCESS:invalid_argument');
             
             % the mex modifies the array contents in memory on the second run 
             pos = [10,2000,5000];
             npix =[1024,1024,1000];
-            [pix_array,pos,npix]=hdf_mex_accessor(f_name,group_name,pos,npix,2048);
+            [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2048);
             
             assertVectorsAlmostEqual(size(pix_array),[9,2048]);
             assertEqual(numel(pos),1);
@@ -209,7 +209,7 @@ classdef test_hdf_pix_group < TestCase
             assertElementsAlmostEqual(pix_array(:,1:1024),data(:,10:1033));
             assertElementsAlmostEqual(pix_array(:,1025:2048),data(:,2000:2000+1023));
             
-            [pix_array,pos,npix]=hdf_mex_accessor(f_name,group_name,pos,npix,2048);
+            [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2048);
             
             assertVectorsAlmostEqual(size(pix_array),[9,1000]);
             assertTrue(isempty(pos));
@@ -218,7 +218,7 @@ classdef test_hdf_pix_group < TestCase
             
             pos = [10,2000,5000];
             npix =[1024,1024,1000];
-            [pix_array,pos,npix]=hdf_mex_accessor(f_name,group_name,pos,npix,2000);
+            [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2000);
             
             assertVectorsAlmostEqual(size(pix_array),[9,2000]);
             assertEqual(numel(pos),2);
@@ -228,7 +228,7 @@ classdef test_hdf_pix_group < TestCase
             assertElementsAlmostEqual(pix_array(:,1:1024),data(:,10:1033));
             assertElementsAlmostEqual(pix_array(:,1025:2000),data(:,2000:2000+975))
 
-            [pix_array,pos,npix]=hdf_mex_accessor(f_name,group_name,pos,npix,2000);            
+            [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2000);            
             assertVectorsAlmostEqual(size(pix_array),[9,1048]);            
             assertTrue(isempty(pos));
             assertTrue(isempty(npix));
