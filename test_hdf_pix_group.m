@@ -161,7 +161,7 @@ classdef test_hdf_pix_group < TestCase
                 return
             end
             % use when mex code debuging only
-            clob0 = onCleanup(@()clear('mex'));
+            %clob0 = onCleanup(@()clear('mex'));
             
             f_name = [tempname,'.nxsqw'];
             
@@ -196,7 +196,7 @@ classdef test_hdf_pix_group < TestCase
             ferr = @()hdf_mex_accessor(f_name,group_name);
             assertExceptionThrown(ferr,'HDF_MEX_ACCESS:invalid_argument');
             
-            
+            % the mex modifies the array contents in memory on the second run 
             pos = [10,2000,5000];
             npix =[1024,1024,1000];
             [pix_array,pos,npix]=hdf_mex_accessor(f_name,group_name,pos,npix,2048);
@@ -227,8 +227,16 @@ classdef test_hdf_pix_group < TestCase
             assertVectorsAlmostEqual(npix,[48;1000]);
             assertElementsAlmostEqual(pix_array(:,1:1024),data(:,10:1033));
             assertElementsAlmostEqual(pix_array(:,1025:2000),data(:,2000:2000+975))
-            
 
+            [pix_array,pos,npix]=hdf_mex_accessor(f_name,group_name,pos,npix,2000);            
+            assertVectorsAlmostEqual(size(pix_array),[9,1048]);            
+            assertTrue(isempty(pos));
+            assertTrue(isempty(npix));
+            assertElementsAlmostEqual(pix_array(:,1:48),data(:,2976:(2976+47)));
+            assertElementsAlmostEqual(pix_array(:,49:1048),data(:,5000:(5000+999)))
+            
+            clear pos;
+            clear npix;
             clear clob3;
             clear clob2;
             clear clob1;

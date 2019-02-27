@@ -16,9 +16,6 @@ hdf_pix_accessor::hdf_pix_accessor()
 
 
 }
-void tester(double &value) {
-	value++;
-}
 
 /* Simple initializer providing access to pixel data
  Assumes that all files and all groups are present.

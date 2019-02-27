@@ -160,6 +160,12 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
 		n_threads = 0;
 		return close_file;
 	}
+	else if (nrhs == 2) {
+		mexErrMsgIdAndTxt("HDF_MEX_ACCESS:invalid_argument",
+			"If only two input arguments are provided, these arguments can be only 'close','close' used to finalize access to a file");
+
+
+	}
 
 
 	if (new_file.equal(current_input_file))
