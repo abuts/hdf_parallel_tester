@@ -4,7 +4,7 @@
     <Import Project="Matlab64_HDF.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
-    <MATLABDIR>c:\Programming\Matlab2012b</MATLABDIR>
+    <MATLABDIR>c:\Programming\Matlab2015b</MATLABDIR>
     <HDF_DIR>c:\Programming\HDF5_1.8.12</HDF_DIR>
   </PropertyGroup>
   <PropertyGroup />
