@@ -161,7 +161,7 @@ classdef test_hdf_pix_group < TestCase
                 return
             end
             % use when mex code debuging only
-            %clob0 = onCleanup(@()clear('mex'));
+            clob0 = onCleanup(@()clear('mex'));
             
             f_name = [tempname,'.nxsqw'];
             
@@ -196,8 +196,11 @@ classdef test_hdf_pix_group < TestCase
             ferr = @()hdf_mex_reader(f_name,group_name);
             assertExceptionThrown(ferr,'HDF_MEX_ACCESS:invalid_argument');
             
-            % the mex modifies the array contents in memory on the second run 
-            pos = [10,2000,5000];
+            % !!! the mex modifies the array contents in memory on the second run
+            % !!! This means that the constants below will be destroyed if
+            % this test is run twice. It will be different numbers second time
+            % the test is run so the test will fail
+            pos = [10,2000, 5000];
             npix =[1024,1024,1000];
             [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2048);
             
@@ -206,15 +209,15 @@ classdef test_hdf_pix_group < TestCase
             assertEqual(numel(npix),1);
             assertEqual(pos(1),5000);
             assertEqual(npix(1),1000);
-            assertElementsAlmostEqual(pix_array(:,1:1024),data(:,10:1033));
-            assertElementsAlmostEqual(pix_array(:,1025:2048),data(:,2000:2000+1023));
+            assertElementsAlmostEqual(pix_array(:,1:1024),single(data(:,10:1033)));
+            assertElementsAlmostEqual(pix_array(:,1025:2048),single(data(:,2000:2000+1023)));
             
             [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2048);
             
             assertVectorsAlmostEqual(size(pix_array),[9,1000]);
             assertTrue(isempty(pos));
             assertTrue(isempty(npix));
-            assertElementsAlmostEqual(pix_array(:,1:1000),data(:,5000:5000+999));
+            assertElementsAlmostEqual(pix_array(:,1:1000),single(data(:,5000:5000+999)));
             
             pos = [10,2000,5000];
             npix =[1024,1024,1000];
@@ -225,15 +228,15 @@ classdef test_hdf_pix_group < TestCase
             assertEqual(numel(npix),2);
             assertVectorsAlmostEqual(pos,[2977;5000]);
             assertVectorsAlmostEqual(npix,[48;1000]);
-            assertElementsAlmostEqual(pix_array(:,1:1024),data(:,10:1033));
-            assertElementsAlmostEqual(pix_array(:,1025:2000),data(:,2000:2000+975))
-
-            [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2000);            
-            assertVectorsAlmostEqual(size(pix_array),[9,1048]);            
+            assertElementsAlmostEqual(pix_array(:,1:1024),single(data(:,10:1033)));
+            assertElementsAlmostEqual(pix_array(:,1025:2000),single(data(:,2000:2000+975)));
+            
+            [pix_array,pos,npix]=hdf_mex_reader(f_name,group_name,pos,npix,2000);
+            assertVectorsAlmostEqual(size(pix_array),[9,1048]);
             assertTrue(isempty(pos));
             assertTrue(isempty(npix));
-            assertElementsAlmostEqual(pix_array(:,1:48),data(:,2976:(2976+47)));
-            assertElementsAlmostEqual(pix_array(:,49:1048),data(:,5000:(5000+999)))
+            assertElementsAlmostEqual(pix_array(:,1:48),single(data(:,2976:(2976+47))));
+            assertElementsAlmostEqual(pix_array(:,49:1048),single(data(:,5000:(5000+999))))
             
             clear pos;
             clear npix;

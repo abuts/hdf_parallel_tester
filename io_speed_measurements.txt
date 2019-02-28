@@ -199,6 +199,22 @@ Block size:   131072 :Speed(MPix/sec): bin Write: 62.1: Read: 10.3: HDF Write: 3
 Block size:   262144 :Speed(MPix/sec): bin Write: 53.9: Read:  9.6: HDF Write: 32.4: Read:  18.7:  HDF Write: 37.9: Read:  19.0:  HDF Write: 30.0: Read:  21.5
 Block size:   524288 :Speed(MPix/sec): bin Write: 46.2: Read:  9.5: HDF Write: 30.4: Read:  19.6:  HDF Write: 36.0: Read:  22.0:  HDF Write: 36.3: Read:  22.5
 
+ndw1676 write speed, HDF writing with mex code: HDF chunk size: 32KPix
+Block size:       64 :Speed(MPix/sec):  bin Write:  3.1: Read:  2.8: HDF Write:  0.7: Read:   7.7
+Block size:      128 :Speed(MPix/sec):  bin Write:  3.9: Read:  5.9: HDF Write:  1.3: Read:  12.4
+Block size:      256 :Speed(MPix/sec):  bin Write:  6.9: Read: 10.5: HDF Write:  2.5: Read:  16.8
+Block size:      512 :Speed(MPix/sec):  bin Write: 12.2: Read: 17.0: HDF Write:  4.6: Read:  22.7
+Block size:     1024 :Speed(MPix/sec):  bin Write: 25.9: Read: 26.2: HDF Write:  8.1: Read:  27.0
+Block size:     2048 :Speed(MPix/sec):  bin Write: 36.6: Read: 37.3: HDF Write: 13.0: Read:  30.8
+Block size:     4096 :Speed(MPix/sec):  bin Write: 44.9: Read: 52.5: HDF Write: 18.1: Read:  37.0
+Block size:     8192 :Speed(MPix/sec):  bin Write: 49.5: Read: 70.2: HDF Write: 21.3: Read:  37.3
+Block size:    16384 :Speed(MPix/sec):  bin Write: 54.3: Read: 70.6: HDF Write: 27.6: Read:  38.0
+Block size:    32768 :Speed(MPix/sec):  bin Write: 58.9: Read: 41.6: HDF Write: 31.0: Read:  40.1
+Block size:    65536 :Speed(MPix/sec):  bin Write: 59.4: Read: 40.1: HDF Write: 32.4: Read:  34.4
+Block size:   131072 :Speed(MPix/sec):  bin Write: 61.8: Read: 44.4: HDF Write: 33.8: Read:  36.5
+Block size:   262144 :Speed(MPix/sec):  bin Write: 56.7: Read: 37.8: HDF Write: 33.1: Read:  38.9
+Block size:   524288 :Speed(MPix/sec):  bin Write: 51.5: Read: 38.9: HDF Write: 31.7: Read:  40.2
+
 isiscompute: node1,                                               :  chunk = 1024               :  chunk = 16*1024            : chunk = 32*1024              : chunk = 64*1024
 Block size:       64 :Speed(MPix/sec): bin Write:  2.6: Read:  1.7: HDF Write:  0.2: Read:   0.2
 Block size:      128 :Speed(MPix/sec): bin Write:  4.8: Read:  3.1: HDF Write:  0.4: Read:   0.4
