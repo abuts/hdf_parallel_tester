@@ -115,7 +115,7 @@ num_threads       -- number of OMP threads to use in i/o operation
 input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[],
     input_file &new_file,
     double *&block_pos, double *&block_size, size_t &n_blocks_provided, int &n_bytes,
-    size_t &buf_size, size_t &n_threads, size_t &npix_to_read) {
+    size_t &buf_size, std::vector<pix_processing_block> &block_split_info, size_t &npix_to_read) {
 
     input_types input_kind;
 
@@ -157,7 +157,7 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
         n_bytes = 0;
         //n_blocks_2_read = 0;
         buf_size = 0;
-        n_threads = 0;
+        block_split_info.resize(0);
         return close_file;
     }
     else if (nrhs == 2) {
@@ -166,7 +166,7 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
 
 
     }
-
+    size_t n_threads;
 
     if (new_file.equal(current_input_file))
         input_kind = read_initiated_data;
@@ -202,18 +202,18 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
 
     buf_size = retrieve_value<size_t>("pixel_buffer_size", prhs[pix_buf_size]);
 
-
+    npix_to_read = 0;
     if (n_blocks_provided == 0 || buf_size == 0) { // nothing to do. 
         input_kind = close_file;
-    }
+        return input_kind;
 
-    npix_to_read = 0;
+    }
+    // calculate number of pixels defined to read and compare it with the size of the buffer dedicated to read data
     for (size_t i = 0; i < n_blocks; ++i) {
         if (n_bytes == 8)
             npix_to_read += static_cast<uint64_t>(block_size[i]);
         else
             npix_to_read += static_cast<uint32_t>(block_size[i]);
-
         if (npix_to_read >= buf_size) {
             npix_to_read = buf_size;
             break;
@@ -222,6 +222,47 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
     if (npix_to_read < buf_size) {
         buf_size = npix_to_read;
     }
+    // split total number of pixels to read into equal blocks dedicated to each thread.
+    block_split_info.resize(n_threads+1);
+    size_t npix_per_thread = buf_size / n_threads;
+    size_t npix_allocated(0),cur_block_size;
+    size_t n_areas_selected(0);
+    size_t n_block_pix_to_read(0);
+    size_t last_split_block_num(0), curr_split_block_num(0), last_split_block_pos(0), cur_split_block_pos(0);
+    for (size_t i = 0; i < n_blocks; ++i) {
+        cur_block_size = static_cast<size_t>(block_size[i]);
+        n_block_pix_to_read += cur_block_size;
+
+        if (n_block_pix_to_read >= npix_per_thread) {
+            npix_allocated +=n_block_pix_to_read;
+            n_areas_selected++;
+
+            // deal with round-off errors related to possibility of npix_per_thread*n_threads<buf_size
+            if (n_block_pix_to_read > npix_per_thread && npix_allocated + (n_threads - n_areas_selected)*npix_per_thread < buf_size) {
+                if (n_areas_selected == n_threads) {
+                    npix_allocated -= n_block_pix_to_read; // return number of allocated pixels to initial value
+                    n_block_pix_to_read = buf_size - npix_allocated;
+                    npix_allocated = buf_size;
+                }
+                else {
+                    n_block_pix_to_read++;
+                    npix_allocated++;
+                }
+            }
+            // initialize block splitting info;
+            cur_split_block_pos = n_block_pix_to_read - npix_per_thread;
+
+            block_split_info[n_areas_selected - 1].init(block_pos, block_size, last_split_block_num,last_split_block_pos,i, cur_split_block_pos, npix_allocated- n_block_pix_to_read);
+            last_split_block_num = i;
+            last_split_block_pos = block_split_info[n_areas_selected - 1].pos_in_last_block+1;
+            n_block_pix_to_read = block_split_info[n_areas_selected - 1].npix_in_last_block();
+        }
+        if (n_areas_selected >= n_threads) {
+            curr_split_block_num = i;
+            break;
+        }
+    }
+    block_split_info[n_threads].init(block_pos, block_size, last_split_block_num, last_split_block_pos,curr_split_block_num, cur_split_block_pos, npix_allocated- n_block_pix_to_read);
 
     return input_kind;
 }

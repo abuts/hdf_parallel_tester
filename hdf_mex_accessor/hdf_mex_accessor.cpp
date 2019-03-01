@@ -22,11 +22,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     hsize_t first_block_non_read(1);
     size_t npix_to_read;
     int n_bytes(0);
+    std::vector<pix_processing_block> block_split_info;
 
     auto work_type = parse_inputs(nlhs, plhs, nrhs, prhs,
         new_input_file,
         pBlock_pos, pBlock_sizes, n_blocks, n_bytes,
-        pix_buf_size, n_threads,npix_to_read);
+        pix_buf_size, block_split_info,npix_to_read);
+    n_threads = block_split_info.size();
 
     if (work_type != close_file && pFile_reader.get() == nullptr) {
         work_type = open_and_read_data;

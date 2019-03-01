@@ -10,6 +10,7 @@
 #include <szlib.h>
 
 #include <mex.h>
+#include "input_parser.h"
 
 class hdf_pix_accessor
 {
@@ -18,6 +19,8 @@ public:
     size_t read_pixels(double *const block_pos, 
         double *const block_sizes,size_t n_blocks_in_blocks, size_t &start_pos,
         float *const pix_buffer, size_t n_pixels);
+    size_t read_pixels(const pix_processing_block&pix_split_info, float *const pix_buffer);
+
     hdf_pix_accessor();
     ~hdf_pix_accessor();
 private:
