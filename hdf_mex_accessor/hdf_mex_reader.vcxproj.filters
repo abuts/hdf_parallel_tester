@@ -27,6 +27,9 @@
     <ClInclude Include="input_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pix_block_processor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hdf_mex_accessor.cpp">
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="input_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pix_block_processor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

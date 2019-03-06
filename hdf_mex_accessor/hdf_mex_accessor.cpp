@@ -3,7 +3,7 @@
 
 #include "hdf_mex_accessor.h"
 
-std::unique_ptr<hdf_pix_accessor> pFile_reader;
+std::vector<std::unique_ptr<hdf_pix_accessor> > file_readers;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -22,58 +22,70 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     hsize_t first_block_non_read(1);
     size_t npix_to_read;
     int n_bytes(0);
-    std::vector<pix_processing_block> block_split_info;
+    float *pixArray(nullptr);
+    std::vector<pix_block_processor> block_split_info;
 
     auto work_type = parse_inputs(nlhs, plhs, nrhs, prhs,
         new_input_file,
         pBlock_pos, pBlock_sizes, n_blocks, n_bytes,
-        pix_buf_size, block_split_info,npix_to_read);
-    n_threads = block_split_info.size();
+        pix_buf_size, block_split_info, npix_to_read);
 
-    if (work_type != close_file && pFile_reader.get() == nullptr) {
-        work_type = open_and_read_data;
+    n_threads = block_split_info.size() - 1;
+    if (work_type != close_file) {
+        if (file_readers.size() != n_threads) {
+            file_readers.resize(n_threads);
+            for (size_t i = 0; i < n_threads; i++) {
+                file_readers[i].reset(nullptr);
+            }
+        }
+        for (size_t i = 0; i < n_threads; i++) {
+            if (file_readers[i].get() == nullptr) {
+                work_type = open_and_read_data;
+                break;
+            }
+        }
     }
     if (nlhs > 0) {
         plhs[pix_array] = mxCreateNumericMatrix(9, npix_to_read, mxSINGLE_CLASS, mxREAL);
+        pixArray = (float*)mxGetPr(plhs[pix_array]);
+    }else{
+        return;
     }
 
-    float *pixArray = (float*)mxGetPr(plhs[pix_array]);
     switch (work_type)
     {
     case close_file:
-        pFile_reader.reset(nullptr);
+        for (size_t i = 0; i < file_readers.size(); i++) {
+            file_readers[i].reset(nullptr);
+        }
+
         break;
     case open_and_read_data:
-        pFile_reader.reset(new hdf_pix_accessor());
-        pFile_reader->init(new_input_file.filename, new_input_file.groupname);
+        for (size_t i = 0; i < n_threads; i++) {
+            file_readers[i].reset(new hdf_pix_accessor());
+            file_readers[i]->init(new_input_file.filename, new_input_file.groupname);
+            file_readers[i]->read_pixels(block_split_info[i], pixArray);
+        }
+        break;
     case read_initiated_data:
-        pFile_reader->read_pixels(pBlock_pos, pBlock_sizes, n_blocks, first_block_non_read,
-            pixArray, pix_buf_size);
+        for (size_t i = 0; i < n_threads; i++) {
+            file_readers[i]->read_pixels(block_split_info[i], pixArray);
+        }
         break;
     default:
         break;
     }
 
     if (nlhs > 1) {
-        if (first_block_non_read >= n_blocks) {
-            plhs[block_positions_left] = mxCreateNumericMatrix(0, 0, mxDOUBLE_CLASS, mxREAL);
-            plhs[block_sizes_left] = mxCreateNumericMatrix(0, 0, mxDOUBLE_CLASS, mxREAL);
-        }
-        else {
-            size_t n_blocks_left = n_blocks - first_block_non_read;
-            plhs[block_positions_left] = mxCreateNumericMatrix(n_blocks_left, 1, mxDOUBLE_CLASS, mxREAL);
-            plhs[block_sizes_left] = mxCreateNumericMatrix(n_blocks_left, 1, mxDOUBLE_CLASS, mxREAL);
+        plhs[n_first_block_left] = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
+        plhs[pos_in_first_block_left] = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
+        auto pNblock = mxGetPr(plhs[n_first_block_left]);
+        auto pPos = mxGetPr(plhs[pos_in_first_block_left]);
 
-            auto pTargPos = mxGetPr(plhs[block_positions_left]);
-            auto pTargSizes = mxGetPr(plhs[block_sizes_left]);
-            for (size_t i = first_block_non_read; i < n_blocks; i++) {
-                pTargPos[i - first_block_non_read] = pBlock_pos[i];
-                pTargSizes[i - first_block_non_read] = pBlock_sizes[i];
-            }
-
-        }
+        *pNblock = (double)block_split_info[n_threads].n_blocks;
+        *pPos = (double)block_split_info[n_threads].pos_in_first_block;
 
     }
 
-}
 
+}

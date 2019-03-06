@@ -11,6 +11,7 @@
 
 #include <mex.h>
 #include "input_parser.h"
+#include "pix_block_processor.h"
 
 class hdf_pix_accessor
 {
@@ -19,7 +20,7 @@ public:
     size_t read_pixels(double *const block_pos, 
         double *const block_sizes,size_t n_blocks_in_blocks, size_t &start_pos,
         float *const pix_buffer, size_t n_pixels);
-    size_t read_pixels(const pix_processing_block&pix_split_info, float *const pix_buffer);
+    size_t read_pixels(const pix_block_processor&pix_split_info, float *const pix_buffer);
 
     hdf_pix_accessor();
     ~hdf_pix_accessor();
@@ -38,7 +39,7 @@ private:
     size_t  io_chunk_size_;
 
     void close_pix_dataset();
-    bool set_block_params(double &block_pos, double &block_size,
+    bool set_block_params(hsize_t block_pos, hsize_t block_size,
         size_t &n_pix_selected, size_t &pix_buf_size,
         hsize_t *const block_start,
         hsize_t *const pix_chunk_size,

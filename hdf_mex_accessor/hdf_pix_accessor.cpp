@@ -106,179 +106,60 @@ void hdf_pix_accessor::close_pix_dataset() {
 
 
 }
-/*  read pixel information specified by pixels starting position
-*   and the sizes of the pixels blocks
-*
-*  does not work for overlapping pixels regions so pixels regions should not be overlapping
-*
-*/
-hsize_t hdf_pix_accessor::read_pixels(double *const block_pos, double *const block_sizes,
-    size_t n_blocks, size_t &first_block_non_read, float *const pix_buffer, size_t pix_buf_size) {
+
+size_t hdf_pix_accessor::read_pixels(const pix_block_processor&pix_split_info, float *const pix_buffer) {
 
     //hsize_t n_hs_blocks[2]    = { 1,1 };
     hsize_t block_start[2] = { 0,0 };
     hsize_t pix_chunk_size[2] = { 0,9 };
-    first_block_non_read = 0;
     hsize_t n_pix_processed(0), n_pix_selected(0);
-    size_t pix_buf_size_left(pix_buf_size);
 
-    bool selection_completed = this->set_block_params(block_pos[0], block_sizes[0],
-        n_pix_selected, pix_buf_size_left,
-        block_start, pix_chunk_size, first_block_non_read);
+    herr_t err;
+    // input block positions provided as in Matlab/Fortran (starting from 1) so C position is one less
 
-    herr_t err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_SET, block_start, NULL, pix_chunk_size, NULL);
-    if (err < 0) {
-        mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
-    }
-    if (this->io_chunk_size_ != n_pix_selected) {
-        err = H5Sset_extent_simple(this->io_mem_space, 2, pix_chunk_size, pix_chunk_size);
-        if (err < 0)
-            mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not extend memory dataspace to load pixels");
-        this->io_chunk_size_ = n_pix_selected;
-    }
-    err = H5Dread(this->pix_dataset, this->pix_data_id, this->io_mem_space, this->file_space_id, H5P_DEFAULT, pix_buffer);
-    if (err < 0)
-        mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Error reading pixels");
-    n_pix_processed += n_pix_selected;
+    size_t n_blocks = pix_split_info.n_blocks;
+    size_t pix_buf_0pos = pix_split_info.pix_buf_pos*9;
 
-    if (!selection_completed) {
-        for (size_t i = 1; i < n_blocks; ++i) {
 
-            bool selection_completed = this->set_block_params(block_pos[i], block_sizes[i],
-                n_pix_selected, pix_buf_size_left,
-                block_start, pix_chunk_size, first_block_non_read);
-
-            err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_SET, block_start, NULL, pix_chunk_size, NULL);
-            if (err < 0) {
-                mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
-            }
-            if (this->io_chunk_size_ != n_pix_selected) {
-                err = H5Sset_extent_simple(this->io_mem_space, 2, pix_chunk_size, pix_chunk_size);
-                if (err < 0)
-                    mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not extend memory dataspace to load pixels");
-                this->io_chunk_size_ = n_pix_selected;
-            }
-
-            err = H5Dread(this->pix_dataset, this->pix_data_id, this->io_mem_space, this->file_space_id, H5P_DEFAULT, pix_buffer+ n_pix_processed*9);
-            if (err < 0){
-                mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Error reading pixels");
-            }
-            n_pix_processed += n_pix_selected;
-
-            if (selection_completed)break;
+    for (size_t i = 0; i < n_blocks; ++i) {
+        hsize_t block_pos = pix_split_info.block_pos(i);
+        n_pix_selected = pix_split_info.block_size(i);
+        if (n_pix_selected > pix_split_info.get_buf_size()) {
+            mexWarnMsgIdAndTxt("HDF_MEX_ACCESSOR:logical_error",
+                "Selected number of pixels exceeds allocated buffer. Pixels truncated but result may be incomplete");
+            n_pix_selected = pix_split_info.get_buf_size();
         }
+
+
+        if (block_pos + n_pix_selected> this->max_num_pixels_) {
+            mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error",
+                "Attempt to read pixels beyond of existing range of the pixels");
+        }
+        block_start[0] = block_pos;
+        pix_chunk_size[0] = n_pix_selected;
+
+        err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_SET, block_start, NULL, pix_chunk_size, NULL);
+        if (err < 0) {
+            mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
+        }
+        if (this->io_chunk_size_ != n_pix_selected) {
+            err = H5Sset_extent_simple(this->io_mem_space, 2, pix_chunk_size, pix_chunk_size);
+            if (err < 0)
+                mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not extend memory dataspace to load pixels");
+            this->io_chunk_size_ = n_pix_selected;
+        }
+
+        err = H5Dread(this->pix_dataset, this->pix_data_id, this->io_mem_space, this->file_space_id, H5P_DEFAULT, pix_buffer + pix_buf_0pos + n_pix_processed * 9);
+        if (err < 0) {
+            mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Error reading pixels");
+        }
+        n_pix_processed += n_pix_selected;
     }
 
     return n_pix_processed;
 
 }
-size_t hdf_pix_accessor::read_pixels(const pix_processing_block&pix_split_info,float *const pix_buffer) {
 
-    //hsize_t n_hs_blocks[2]    = { 1,1 };
-    hsize_t block_start[2] = { 0,0 };
-    hsize_t pix_chunk_size[2] = { 0,9 };
-    first_block_non_read = 0;
-    hsize_t n_pix_processed(0), n_pix_selected(0);
-    size_t pix_buf_size_left(pix_buf_size);
-
-    bool selection_completed = this->set_block_params(block_pos[0], block_sizes[0],
-        n_pix_selected, pix_buf_size_left,
-        block_start, pix_chunk_size, first_block_non_read);
-
-    herr_t err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_SET, block_start, NULL, pix_chunk_size, NULL);
-    if (err < 0) {
-        mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
-    }
-    if (this->io_chunk_size_ != n_pix_selected) {
-        err = H5Sset_extent_simple(this->io_mem_space, 2, pix_chunk_size, pix_chunk_size);
-        if (err < 0)
-            mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not extend memory dataspace to load pixels");
-        this->io_chunk_size_ = n_pix_selected;
-    }
-    err = H5Dread(this->pix_dataset, this->pix_data_id, this->io_mem_space, this->file_space_id, H5P_DEFAULT, pix_buffer);
-    if (err < 0)
-        mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Error reading pixels");
-    n_pix_processed += n_pix_selected;
-
-    if (!selection_completed) {
-        for (size_t i = 1; i < n_blocks; ++i) {
-
-            bool selection_completed = this->set_block_params(block_pos[i], block_sizes[i],
-                n_pix_selected, pix_buf_size_left,
-                block_start, pix_chunk_size, first_block_non_read);
-
-            err = H5Sselect_hyperslab(this->file_space_id, H5S_SELECT_SET, block_start, NULL, pix_chunk_size, NULL);
-            if (err < 0) {
-                mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not select hyperslab while selecting pixels");
-            }
-            if (this->io_chunk_size_ != n_pix_selected) {
-                err = H5Sset_extent_simple(this->io_mem_space, 2, pix_chunk_size, pix_chunk_size);
-                if (err < 0)
-                    mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Can not extend memory dataspace to load pixels");
-                this->io_chunk_size_ = n_pix_selected;
-            }
-
-            err = H5Dread(this->pix_dataset, this->pix_data_id, this->io_mem_space, this->file_space_id, H5P_DEFAULT, pix_buffer + n_pix_processed * 9);
-            if (err < 0) {
-                mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Error reading pixels");
-            }
-            n_pix_processed += n_pix_selected;
-
-            if (selection_completed)break;
-        }
-    }
-
-
-}
-/* generate parameters of the selection hyperslab from a pixels block parameters ensuring the total selection
-   size would not exceed the limits i.e. pixels buffer size and the data range*/
-bool hdf_pix_accessor::set_block_params(double &rBlock_pos, double &rBlock_size,
-    size_t &n_pix_selected, size_t &pix_buf_size_left,
-    hsize_t *const block_start, hsize_t *const pix_chunk_size,
-    hsize_t &n_first_block_left) {
-
-    bool advance(true);
-    bool selection_completed(false);
-    // input block positions provided as in Matlab/Fortran (starting from 1) so C position is one less
-    hsize_t sel_block_pos = static_cast<hsize_t>(rBlock_pos)-1;
-    hsize_t sel_block_size = static_cast<hsize_t>(rBlock_size);
-
-    /* check if we have selected enough pixels*/
-    if (sel_block_size > pix_buf_size_left) {
-        sel_block_size = pix_buf_size_left;
-        /* modify partially selected block*/
-        advance = false;
-        selection_completed = true;
-    }
-    else if (sel_block_size == pix_buf_size_left) {
-        advance = true;
-        selection_completed = true;
-
-    }
-
-    /* check if we got to the end of the pixels data*/
-    if (sel_block_pos + sel_block_size > this->max_num_pixels_) {
-        mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", 
-            "Attempt to read pixels beyond of existing range of the pixels");
-    }
-
-
-    block_start[0]     = sel_block_pos;
-    pix_chunk_size[0]  = sel_block_size;
-    n_pix_selected     = sel_block_size;
-    pix_buf_size_left -= sel_block_size;
-
-    if (advance) {
-        n_first_block_left++;
-    }
-    else {
-        rBlock_size -= static_cast<double>(sel_block_size);
-        rBlock_pos += static_cast<double>(sel_block_size)+1;
-    }
-
-
-    return selection_completed;
-}
 
 hdf_pix_accessor::~hdf_pix_accessor()
 {

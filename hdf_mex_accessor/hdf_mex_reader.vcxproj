@@ -162,11 +162,13 @@
     <ClInclude Include="hdf_mex_accessor.h" />
     <ClInclude Include="hdf_pix_accessor.h" />
     <ClInclude Include="input_parser.h" />
+    <ClInclude Include="pix_block_processor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hdf_mex_accessor.cpp" />
     <ClCompile Include="hdf_pix_accessor.cpp" />
     <ClCompile Include="input_parser.cpp" />
+    <ClCompile Include="pix_block_processor.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
