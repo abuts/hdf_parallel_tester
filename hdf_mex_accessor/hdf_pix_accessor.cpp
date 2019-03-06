@@ -107,7 +107,7 @@ void hdf_pix_accessor::close_pix_dataset() {
 
 }
 
-size_t hdf_pix_accessor::read_pixels(const pix_block_processor&pix_split_info, float *const pix_buffer) {
+size_t hdf_pix_accessor::read_pixels(const pix_block_processor&pix_split_info, float *const pix_buffer, size_t buf_size) {
 
     //hsize_t n_hs_blocks[2]    = { 1,1 };
     hsize_t block_start[2] = { 0,0 };
@@ -124,10 +124,10 @@ size_t hdf_pix_accessor::read_pixels(const pix_block_processor&pix_split_info, f
     for (size_t i = 0; i < n_blocks; ++i) {
         hsize_t block_pos = pix_split_info.block_pos(i);
         n_pix_selected = pix_split_info.block_size(i);
-        if (n_pix_selected > pix_split_info.get_buf_size()) {
+        if (pix_buf_0pos+n_pix_processed+n_pix_selected > buf_size) {
             mexWarnMsgIdAndTxt("HDF_MEX_ACCESSOR:logical_error",
                 "Selected number of pixels exceeds allocated buffer. Pixels truncated but result may be incomplete");
-            n_pix_selected = pix_split_info.get_buf_size();
+            n_pix_selected = buf_size - pix_buf_0pos + n_pix_processed;
         }
 
 

@@ -231,7 +231,6 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
         else if (npix_to_read > buf_size)
             npix_to_read = buf_size;
     }
-    pix_block_processor::buf_size = buf_size;
 
     block_split_info = pix_block_processor::split_pix_block(block_pos, block_size, n_blocks, num_first_block, pos_in_the_first_block,buf_size, n_threads);
     return input_kind;

@@ -86,6 +86,7 @@ classdef test_hdf_pix_group < TestCase
             clear clob1;
             clear clob2;
         end
+        %
         function test_missing_file(obj)
             f_name = [tempname,'.nxsqw'];
             
@@ -97,6 +98,7 @@ classdef test_hdf_pix_group < TestCase
             assertExceptionThrown(f_missing,'HDF_PIX_GROUP:runtime_error')
             
         end
+        %
         function test_multiblock_read(obj)
             f_name = [tempname,'.nxsqw'];
             
@@ -153,10 +155,11 @@ classdef test_hdf_pix_group < TestCase
             clear clob2;
             
         end
+        %
         function  test_mex_reader_multithread(obj)
             if isempty(which('hdf_mex_reader'))
                 warning('TEST_MEX_READER:runtime_error',...
-                    'the hdf mex reader was not found in the Matlab path');
+                    'the hdf mex reader was not found in the Matlab path. Testing skipped');
                 return
             end
             % use when mex code debuging only
@@ -277,11 +280,11 @@ classdef test_hdf_pix_group < TestCase
             clear clob0;
             
         end
-        
+        %
         function  test_mex_reader(obj)
             if isempty(which('hdf_mex_reader'))
                 warning('TEST_MEX_READER:runtime_error',...
-                    'the hdf mex reader was not found in the Matlab path');
+                    'the hdf mex reader was not found in the Matlab path. Testing skipped');
                 return
             end
             % use when mex code debuging only

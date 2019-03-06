@@ -64,12 +64,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         for (size_t i = 0; i < n_threads; i++) {
             file_readers[i].reset(new hdf_pix_accessor());
             file_readers[i]->init(new_input_file.filename, new_input_file.groupname);
-            file_readers[i]->read_pixels(block_split_info[i], pixArray);
+            file_readers[i]->read_pixels(block_split_info[i], pixArray, npix_to_read);
         }
         break;
     case read_initiated_data:
         for (size_t i = 0; i < n_threads; i++) {
-            file_readers[i]->read_pixels(block_split_info[i], pixArray);
+            file_readers[i]->read_pixels(block_split_info[i], pixArray, npix_to_read);
         }
         break;
     default:

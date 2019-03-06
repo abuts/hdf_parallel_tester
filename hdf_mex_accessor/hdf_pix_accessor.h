@@ -17,10 +17,7 @@ class hdf_pix_accessor
 {
 public:
     void init(const std::string &filename, const std::string &pix_group_name);
-    size_t read_pixels(double *const block_pos, 
-        double *const block_sizes,size_t n_blocks_in_blocks, size_t &start_pos,
-        float *const pix_buffer, size_t n_pixels);
-    size_t read_pixels(const pix_block_processor&pix_split_info, float *const pix_buffer);
+    size_t read_pixels(const pix_block_processor&pix_split_info, float *const pix_buffer,size_t buf_size);
 
     hdf_pix_accessor();
     ~hdf_pix_accessor();

@@ -4,7 +4,6 @@
 /* The class which describes a block of information necessary to process block of pixels */
 class pix_block_processor {
 public:
-    static size_t buf_size;
     // number of blocks to process
     size_t n_blocks;
     // the initial position of the pixels, described by this block in the pixels buffer;
@@ -15,9 +14,7 @@ public:
     // how many pixels to take from the last block
     size_t pos_in_last_block;
 
-    size_t get_buf_size()const {
-        return pix_block_processor::buf_size;
-    }
+
 
     hsize_t block_pos(size_t ind)const {
         hsize_t sel_block_pos;
@@ -30,21 +27,24 @@ public:
 
     hsize_t block_size(size_t ind)const {
         hsize_t sel_block_size;
-        if (ind == 0)
-            sel_block_size = static_cast<hsize_t>(*this->pBlockSizes) - this->pos_in_first_block;
-        else if (ind < this->n_blocks-1)
-            sel_block_size = static_cast<hsize_t>(this->pBlockSizes[ind]);
-        else
-            sel_block_size = this->pos_in_last_block;
-        if (sel_block_size > pix_block_processor::buf_size)
-            sel_block_size = pix_block_processor::buf_size;
+        if (n_blocks == 1) {
+            sel_block_size = this->pos_in_last_block - this->pos_in_first_block;
+        }
+        else {
+            if (ind == 0)
+                sel_block_size = static_cast<hsize_t>(*this->pBlockSizes) - this->pos_in_first_block;
+            else if (ind < this->n_blocks - 1)
+                sel_block_size = static_cast<hsize_t>(this->pBlockSizes[ind]);
+            else
+                sel_block_size = this->pos_in_last_block;
+        }
         return sel_block_size;
     }
 
     pix_block_processor() :
         n_blocks(0), pix_buf_pos(0),
         pos_in_first_block(0), pos_in_last_block(0),
-        pBlockPos(nullptr), pBlockSizes(nullptr){}
+        pBlockPos(nullptr), pBlockSizes(nullptr) {}
 
     size_t npix_in_last_block() {
         return (this->pos_in_last_block + 1);
@@ -59,6 +59,6 @@ private:
     // pointer to the inital place in array of block sizes
     double const *pBlockSizes;
 
- 
+
 
 };
