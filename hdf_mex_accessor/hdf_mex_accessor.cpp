@@ -18,7 +18,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     input_file new_input_file;
     double *pBlock_pos(nullptr);
     double *pBlock_sizes(nullptr);
-    size_t n_blocks, pix_buf_size, n_threads;
+    size_t n_blocks, n_threads;
     hsize_t first_block_non_read(1);
     size_t npix_to_read;
     int n_bytes(0);
@@ -28,7 +28,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     auto work_type = parse_inputs(nlhs, plhs, nrhs, prhs,
         new_input_file,
         pBlock_pos, pBlock_sizes, n_blocks, n_bytes,
-        pix_buf_size, block_split_info, npix_to_read);
+        block_split_info, npix_to_read);
 
     n_threads = block_split_info.size() - 1;
     if (work_type != close_file) {

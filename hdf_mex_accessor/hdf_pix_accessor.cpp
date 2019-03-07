@@ -118,16 +118,17 @@ size_t hdf_pix_accessor::read_pixels(const pix_block_processor&pix_split_info, f
     // input block positions provided as in Matlab/Fortran (starting from 1) so C position is one less
 
     size_t n_blocks = pix_split_info.n_blocks;
-    size_t pix_buf_0pos = pix_split_info.pix_buf_pos*9;
+    size_t pix_buf_pos = pix_split_info.pix_buf_pos;
+    size_t pix_buf_0pos = pix_buf_pos*9;
 
 
     for (size_t i = 0; i < n_blocks; ++i) {
         hsize_t block_pos = pix_split_info.block_pos(i);
         n_pix_selected = pix_split_info.block_size(i);
-        if (pix_buf_0pos+n_pix_processed+n_pix_selected > buf_size) {
+        if (pix_buf_pos +n_pix_processed+n_pix_selected > buf_size) {
             mexWarnMsgIdAndTxt("HDF_MEX_ACCESSOR:logical_error",
                 "Selected number of pixels exceeds allocated buffer. Pixels truncated but result may be incomplete");
-            n_pix_selected = buf_size - pix_buf_0pos + n_pix_processed;
+            n_pix_selected = buf_size - pix_buf_pos + n_pix_processed;
         }
 
 

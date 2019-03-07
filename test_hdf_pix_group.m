@@ -147,8 +147,8 @@ classdef test_hdf_pix_group < TestCase
             npix =[128,256,256];
             [pix,pos,npix] = pix_acc.read_pixels(pos,npix);
             assertEqual(pix(1,385:(384+256)),single(2000:(1999+256)));
-            asserttTrue(isempty(pos));
-            asserttTrue(isempty(npix));
+            assertTrue(isempty(pos));
+            assertTrue(isempty(npix));
             
             clear pix_acc;
             clear clob1;
@@ -163,7 +163,7 @@ classdef test_hdf_pix_group < TestCase
                 return
             end
             % use when mex code debuging only
-            clob0 = onCleanup(@()clear('mex'));
+            %clob0 = onCleanup(@()clear('mex'));
             
             f_name = [tempname,'.nxsqw'];
             
@@ -182,6 +182,8 @@ classdef test_hdf_pix_group < TestCase
                 data(i,:) = data(i,:)*i;
             end
             pix_acc.write_pixels(1,data);
+            clear clob3;
+            clear clob2;            
             
             % check mex file is callable
             clob4 = onCleanup(@()hdf_mex_reader('close','close'));
@@ -223,6 +225,20 @@ classdef test_hdf_pix_group < TestCase
             assertEqual(pos0,0);
             assertElementsAlmostEqual(pix_array(:,1:1010),single(data(:,pos(2)+3990:(5000+pos(2)-1))));
             assertElementsAlmostEqual(pix_array(:,1011:1020),single(data(:,pos(3):(10+pos(3)-1))));
+
+            pos = [10,2000, 5000];
+            npix =[1024,1024,1000];
+            nblock0 =0;
+            pos0 = 0;
+            [pix_array,nblock0,pos0]=hdf_mex_reader(f_name,group_name,pos,npix,nblock0,pos0,2048,4);
+            
+            assertVectorsAlmostEqual(size(pix_array),[9,2048]);
+            assertEqual(numel(nblock0),1);
+            assertEqual(numel(pos0),1);
+            assertEqual(nblock0,2);
+            assertEqual(pos0,0);
+            assertElementsAlmostEqual(pix_array(:,1:1024),single(data(:,10:1033)));
+            assertElementsAlmostEqual(pix_array(:,1025:2048),single(data(:,2000:2000+1023)));            
             %-------------------------------------------------------------
             pos = [10,2000, 5000];
             npix =[1024,1024,1000];
@@ -274,10 +290,8 @@ classdef test_hdf_pix_group < TestCase
             
             
             clear clob4;
-            clear clob3;
-            clear clob2;
             clear clob1;
-            clear clob0;
+            %clear clob0;
             
         end
         %
@@ -307,6 +321,9 @@ classdef test_hdf_pix_group < TestCase
                 data(i,:) = data(i,:)*i;
             end
             pix_acc.write_pixels(1,data);
+            clear clob3;
+            clear clob2;
+            
             
             % check mex file is callable
             rev = hdf_mex_reader();
@@ -408,8 +425,6 @@ classdef test_hdf_pix_group < TestCase
             
             
             clear clob4;
-            clear clob3;
-            clear clob2;
             clear clob1;
             %clear clob0;
             

@@ -65,4 +65,4 @@ struct input_file {
 input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[],
     input_file &new_file,
     double *&block_pos, double *&block_size, size_t &n_blocks, int &n_bytes,
-    size_t &buf_size, std::vector<pix_block_processor> &block_split_info, size_t &npix_to_read);
+    std::vector<pix_block_processor> &block_split_info, size_t &npix_to_read);

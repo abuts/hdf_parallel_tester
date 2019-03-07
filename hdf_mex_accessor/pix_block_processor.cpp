@@ -21,7 +21,7 @@ std::vector<pix_block_processor> pix_block_processor::split_pix_block(double con
     // split total number of pixels to read into equal blocks dedicated to each thread.
     std::vector<pix_block_processor> split_info(n_parts + 1);
     size_t npix_per_thread = buf_size / n_parts;
-    std::vector<int64_t> npix_per_thread_sb(n_parts, npix_per_thread);
+    std::vector<size_t> npix_per_thread_sb(n_parts, npix_per_thread);
     size_t npix_reserved = npix_per_thread*n_parts;
     if (npix_reserved < buf_size) {
         for (size_t i = 0; i < n_parts; i++) {
@@ -47,7 +47,7 @@ std::vector<pix_block_processor> pix_block_processor::split_pix_block(double con
             size_t n_blocks_to_read = i - blocks_start_pos + 1;
             size_t block_size;
             if (n_blocks_to_read <= 1)
-                block_size = npix_per_thread_sb[n_thread_blocks_sel]+ last_split_block_pos;
+                block_size = npix_per_thread_sb[n_thread_blocks_sel] + last_split_block_pos;
             else
                 block_size = cur_block_size;
             split_info[n_thread_blocks_sel].init(blockPos, blockSizes, blocks_start_pos, pix_start_pos, n_blocks_to_read, last_split_block_pos, block_size);
@@ -60,12 +60,12 @@ std::vector<pix_block_processor> pix_block_processor::split_pix_block(double con
             n_block_pix_slected = 0;
             last_split_block_pos = 0;
         }
-        else if (fabs(n_block_pix_slected)> npix_per_thread_sb[n_thread_blocks_sel]) {
+        else if (fabs(n_block_pix_slected) > npix_per_thread_sb[n_thread_blocks_sel]) {
             size_t n_blocks_to_read = i - blocks_start_pos + 1;
 
 
             // initialize block splitting info;
-            int64_t overhung = n_block_pix_slected - npix_per_thread_sb[n_thread_blocks_sel];
+            size_t overhung = n_block_pix_slected - npix_per_thread_sb[n_thread_blocks_sel];
             cur_split_block_pos = cur_block_size - overhung;
             n_block_pix_slected = npix_per_thread_sb[n_thread_blocks_sel];
 
@@ -79,16 +79,24 @@ std::vector<pix_block_processor> pix_block_processor::split_pix_block(double con
             n_block_pix_slected = overhung;
             last_split_block_pos = cur_split_block_pos;
             // process big pixels block, hanging 
-            while (n_thread_blocks_sel<n_parts && overhung>=npix_per_thread_sb[n_thread_blocks_sel]) {
+            while (n_thread_blocks_sel < n_parts && overhung >= npix_per_thread_sb[n_thread_blocks_sel]) {
+ 
+
                 overhung = n_block_pix_slected - npix_per_thread_sb[n_thread_blocks_sel];
                 cur_split_block_pos = cur_block_size - overhung;
                 n_block_pix_slected = npix_per_thread_sb[n_thread_blocks_sel];
 
                 split_info[n_thread_blocks_sel].init(blockPos, blockSizes, blocks_start_pos, pix_start_pos, 1, last_split_block_pos, cur_split_block_pos);
+
                 n_thread_blocks_sel++;
                 pix_start_pos += n_block_pix_slected; // The position of the next pixels block in the pixel buffer.
-                n_block_pix_slected = overhung;
+                //
                 last_split_block_pos = cur_split_block_pos;
+                n_block_pix_slected = overhung;
+                if (overhung == 0){
+                    blocks_start_pos++;
+                    last_split_block_pos = 0;
+                }
             }
         }
         n_blocks_read = blocks_start_pos;

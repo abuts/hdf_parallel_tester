@@ -109,13 +109,12 @@ n_blocks_provided -- the size of the block positions and block sizes array
 n_bytes           -- the size of the pointer of block_positions and block_size array
 n_blocks_2_read   -- number of blocks to read until buffer is full
 
-buf_size          -- the maximal number of pixels to read in one operation
 num_threads       -- number of OMP threads to use in i/o operation
 */
 input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[],
     input_file &new_file,
     double *&block_pos, double *&block_size, size_t &n_blocks_provided, int &n_bytes,
-    size_t &buf_size, std::vector<pix_block_processor> &block_split_info, size_t &npix_to_read) {
+    std::vector<pix_block_processor> &block_split_info, size_t &npix_to_read) {
 
     input_types input_kind;
 
@@ -156,7 +155,6 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
         n_blocks_provided = 0;
         n_bytes = 0;
         //n_blocks_2_read = 0;
-        buf_size = 0;
         block_split_info.resize(1);
         return close_file;
     }
@@ -201,7 +199,7 @@ input_types parse_inputs(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
     size_t num_first_block = retrieve_value<size_t>("num_first_block_left", prhs[n_first_block]);
     size_t pos_in_the_first_block = retrieve_value<size_t>("pos_in_first_block", prhs[pos_in_first_block]);
 
-    buf_size = retrieve_value<size_t>("pixel_buffer_size", prhs[pix_buf_size]);
+    size_t buf_size = retrieve_value<size_t>("pixel_buffer_size", prhs[pix_buf_size]);
 
 
     if (n_blocks_provided == 0 || buf_size == 0 || num_first_block>= n_blocks) { // nothing to do. 
