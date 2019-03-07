@@ -12,6 +12,17 @@
 #include <mex.h>
 #include "input_parser.h"
 #include "pix_block_processor.h"
+#include <memory>
+
+#ifndef _OPENMP
+void omp_set_num_threads(int nThreads) {};
+#define omp_get_num_threads() 1
+#define omp_get_max_threads() 1
+#define omp_get_thread_num()  0
+#else
+#include <omp.h>
+#endif
+
 
 class hdf_pix_accessor
 {
@@ -21,6 +32,10 @@ public:
 
     hdf_pix_accessor();
     ~hdf_pix_accessor();
+
+    static void process_data(const input_file &new_input_file, input_types work_type,
+        std::vector<std::unique_ptr<hdf_pix_accessor> > &readers,
+        const std::vector<pix_block_processor> &pix_split_info, float *const pix_buffer, size_t buf_size);
 private:
     std::string filename;
     std::string pix_group_name;
@@ -36,10 +51,5 @@ private:
     size_t  io_chunk_size_;
 
     void close_pix_dataset();
-    bool set_block_params(hsize_t block_pos, hsize_t block_size,
-        size_t &n_pix_selected, size_t &pix_buf_size,
-        hsize_t *const block_start,
-        hsize_t *const pix_chunk_size,
-        hsize_t &first_block_non_read);
 };
 

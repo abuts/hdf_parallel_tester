@@ -48,33 +48,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (nlhs > 0) {
         plhs[pix_array] = mxCreateNumericMatrix(9, npix_to_read, mxSINGLE_CLASS, mxREAL);
         pixArray = (float*)mxGetPr(plhs[pix_array]);
-    }else{
-        return;
     }
 
-    switch (work_type)
-    {
-    case close_file:
-        for (size_t i = 0; i < file_readers.size(); i++) {
-            file_readers[i].reset(nullptr);
-        }
+    hdf_pix_accessor::process_data(new_input_file, work_type,
+        file_readers, block_split_info, pixArray, npix_to_read);
 
-        break;
-    case open_and_read_data:
-        for (size_t i = 0; i < n_threads; i++) {
-            file_readers[i].reset(new hdf_pix_accessor());
-            file_readers[i]->init(new_input_file.filename, new_input_file.groupname);
-            file_readers[i]->read_pixels(block_split_info[i], pixArray, npix_to_read);
-        }
-        break;
-    case read_initiated_data:
-        for (size_t i = 0; i < n_threads; i++) {
-            file_readers[i]->read_pixels(block_split_info[i], pixArray, npix_to_read);
-        }
-        break;
-    default:
-        break;
-    }
 
     if (nlhs > 1) {
         plhs[n_first_block_left] = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);

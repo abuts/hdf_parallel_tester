@@ -1,21 +1,40 @@
 #include "hdf_pix_accessor.h"
 
+void hdf_pix_accessor::process_data(const input_file &new_input_file, input_types work_type,
+    std::vector<std::unique_ptr<hdf_pix_accessor> > &readers,
+    const std::vector<pix_block_processor> &pix_split_info, float *const pix_buffer, size_t buf_size) {
+    int n_threads = static_cast<int>(readers.size());
 
 
-hdf_pix_accessor::hdf_pix_accessor()
-{
-    this->file_handle = -1;
-    this->pix_group_id = -1;
-
-    this->pix_dataset = -1;
-    this->pix_data_id = -1;
-
-    this->file_space_id = -1;
-
-    this->io_mem_space = -1;
-
-
+    switch (work_type)
+    {
+    case close_file:
+        for (int i = 0; i < n_threads; i++) {
+            readers[i].reset(nullptr);
+        }
+        break;
+    case open_and_read_data:
+//        omp_set_num_threads(n_threads);
+//#pragma omp parallel for
+        for (int i = 0; i < n_threads; i++) {
+            readers[i].reset(new hdf_pix_accessor());
+            readers[i]->init(new_input_file.filename, new_input_file.groupname);
+            readers[i]->read_pixels(pix_split_info[i], pix_buffer, buf_size);
+        }
+        break;
+    case read_initiated_data:
+//        omp_set_num_threads(n_threads);
+//#pragma omp parallel for
+        for (int i = 0; i < n_threads; i++) {
+            readers[i]->read_pixels(pix_split_info[i], pix_buffer, buf_size);
+        }
+        break;
+    default:
+        mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error", "Unknown operation mode");
+        break;
+    }
 }
+
 
 /* Simple initializer providing access to pixel data
  Assumes that all files and all groups are present.
@@ -119,20 +138,20 @@ size_t hdf_pix_accessor::read_pixels(const pix_block_processor&pix_split_info, f
 
     size_t n_blocks = pix_split_info.n_blocks;
     size_t pix_buf_pos = pix_split_info.pix_buf_pos;
-    size_t pix_buf_0pos = pix_buf_pos*9;
+    size_t pix_buf_0pos = pix_buf_pos * 9;
 
 
     for (size_t i = 0; i < n_blocks; ++i) {
         hsize_t block_pos = pix_split_info.block_pos(i);
         n_pix_selected = pix_split_info.block_size(i);
-        if (pix_buf_pos +n_pix_processed+n_pix_selected > buf_size) {
+        if (pix_buf_pos + n_pix_processed + n_pix_selected > buf_size) {
             mexWarnMsgIdAndTxt("HDF_MEX_ACCESSOR:logical_error",
                 "Selected number of pixels exceeds allocated buffer. Pixels truncated but result may be incomplete");
             n_pix_selected = buf_size - pix_buf_pos + n_pix_processed;
         }
 
 
-        if (block_pos + n_pix_selected> this->max_num_pixels_) {
+        if (block_pos + n_pix_selected > this->max_num_pixels_) {
             mexErrMsgIdAndTxt("HDF_MEX_ACCESSOR:runtime_error",
                 "Attempt to read pixels beyond of existing range of the pixels");
         }
@@ -178,6 +197,21 @@ hdf_pix_accessor::~hdf_pix_accessor()
     if (this->file_handle != -1) {
         H5Fclose(this->file_handle);
     }
+
+}
+
+hdf_pix_accessor::hdf_pix_accessor()
+{
+    this->file_handle = -1;
+    this->pix_group_id = -1;
+
+    this->pix_dataset = -1;
+    this->pix_data_id = -1;
+
+    this->file_space_id = -1;
+
+    this->io_mem_space = -1;
+
 
 }
 
