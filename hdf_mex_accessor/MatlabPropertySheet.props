@@ -4,8 +4,10 @@
     <Import Project="Matlab64_HDF.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
-    <MATLABDIR>c:\Programming\Matlab2015b</MATLABDIR>
+    <MATLABDIR>c:\Programming\Matlab2018b</MATLABDIR>
     <HDF_DIR>c:\Programming\HDF5_1.8.12</HDF_DIR>
+    <IncludeDir64>64\extern\include</IncludeDir64>
+    <LibDir64>64\extern\lib\win64\microsoft</LibDir64>
   </PropertyGroup>
   <PropertyGroup />
   <ItemDefinitionGroup />
@@ -17,6 +19,12 @@
     <BuildMacro Include="HDF_DIR">
       <Value>$(HDF_DIR)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="IncludeDir64">
+      <Value>$(IncludeDir64)</Value>
+    </BuildMacro>
+    <BuildMacro Include="LibDir64">
+      <Value>$(LibDir64)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>
